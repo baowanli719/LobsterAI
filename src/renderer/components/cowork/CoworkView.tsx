@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef,useState } from 'react';
 import { useDispatch,useSelector } from 'react-redux';
 
 import { buildSessionTitleFromInput } from '../../../common/sessionTitle';
+import { branding } from '../../../shared/branding';
 import { buildCoworkImageAttachmentPreviews } from '../../../shared/cowork/imageAttachments';
 import type { CoworkSelectedTextSnippet } from '../../../shared/cowork/selectedText';
 import { agentService } from '../../services/agent';
@@ -693,8 +694,8 @@ const CoworkView: React.FC<CoworkViewProps> = ({ onRequestAppSettings, onShowSki
           {/* Welcome Section - staggered entrance animation */}
           <div className="w-full max-w-3xl text-center">
             <img
-              src="logo.png"
-              alt="LobsterAI"
+              src={branding.logo}
+              alt={branding.appName}
               className="mx-auto h-12 w-12 animate-fade-in-up"
             />
             <h2

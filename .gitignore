@@ -53,3 +53,6 @@ sandbox/
 openspec/
 .superpowers/
 .diagram/
+
+# Company enterprise deploy config (contains internal gateway API key) — never commit
+enterprise-config/

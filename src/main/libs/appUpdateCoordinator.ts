@@ -17,6 +17,11 @@ import { cancelActiveDownload, downloadUpdate, installUpdate } from './appUpdate
 import { getFallbackDownloadUrl, getManualUpdateCheckUrl, getUpdateCheckUrl } from './endpoints';
 import { getKeyfromAttribution } from './keyfromAttribution';
 
+// 公司版：暂时禁用「联网检查更新」。当前更新地址仍指向外网（youdao），会误报
+// “有新版本”。以后改为公司内网更新服务后，把此开关设为 true，并在 endpoints.ts 的
+// getUpdateCheckUrl / getManualUpdateCheckUrl 中配置内网地址即可恢复。
+const ONLINE_UPDATE_CHECK_ENABLED: boolean = false;
+
 type ChangeLogLang = {
   title?: string;
   content?: string[];
@@ -98,6 +103,13 @@ export class AppUpdateCoordinator {
     );
     if (this.isUpdateDisabled()) {
       console.log('[AppUpdate] updates are disabled by enterprise config');
+      const state = this.resetToIdle();
+      return { success: true, state, updateFound: false };
+    }
+
+    // 公司版：联网检查更新已禁用（见 ONLINE_UPDATE_CHECK_ENABLED）。
+    if (!ONLINE_UPDATE_CHECK_ENABLED) {
+      console.log('[AppUpdate] online update check disabled (pending internal update endpoint)');
       const state = this.resetToIdle();
       return { success: true, state, updateFound: false };
     }

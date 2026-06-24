@@ -1,0 +1,12 @@
+{
+  "appName": "国盛证券办公协同平台",
+  "agentName": "GSAI Office Collaboration Agent",
+  "company": {
+    "zh": "国盛证券办公协同",
+    "en": "GSAI Office Collaboration"
+  },
+  "appId": "com.gszq.office.app",
+  "logo": "gszq1.png",
+  "hideLogin": true,
+  "fileName": "GSAIOffice"
+}

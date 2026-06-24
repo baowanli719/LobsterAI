@@ -107,6 +107,9 @@ function verifyPreinstalledPlugins(runtimeRoot, buildHint) {
 
   for (const plugin of plugins) {
     if (!plugin.id) continue;
+    // Optional plugins (e.g. private-registry / git-only NetEase channels) may be
+    // unavailable on a given network — do not block packaging when they are absent.
+    if (plugin.optional) continue;
     const pluginDir = path.join(extensionsDir, plugin.id);
     if (!existsSync(pluginDir)) {
       missing.push(plugin.id);

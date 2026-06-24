@@ -1130,6 +1130,28 @@ export function mergeEnterpriseOpenclawConfig(runtimeConfigPath: string): void {
     const merged = mergeOpenClawConfigs(runtimeConfig, enterpriseConfig);
     fs.writeFileSync(runtimeConfigPath, JSON.stringify(merged, null, 2), 'utf-8');
     console.log('[Enterprise] merged enterprise openclaw.json into runtime config');
+
+    // Diagnostic: dump the final gateway providers (keys masked) so a packaged
+    // build reveals exactly which provider / baseUrl / key the gateway will use.
+    try {
+      const models = (merged.models ?? {}) as { providers?: Record<string, any> };
+      const agents = (merged.agents ?? {}) as { defaults?: { model?: { primary?: string } } };
+      for (const [id, p] of Object.entries(models.providers ?? {})) {
+        const rawKey = typeof p?.apiKey === 'string' ? p.apiKey : '';
+        const keyStatus = !rawKey
+          ? 'EMPTY'
+          : rawKey.startsWith('${')
+            ? `envref ${rawKey}`
+            : `inline ${rawKey.slice(0, 4)}***${rawKey.slice(-2)} len=${rawKey.length}`;
+        const modelIds = Array.isArray(p?.models)
+          ? p.models.map((m: any) => m?.id).join(',')
+          : '';
+        console.log(`[Enterprise][diag] provider=${id} baseUrl=${p?.baseUrl ?? ''} api=${p?.api ?? ''} key=${keyStatus} models=[${modelIds}]`);
+      }
+      console.log(`[Enterprise][diag] default primary model = ${agents.defaults?.model?.primary ?? '(none)'}`);
+    } catch {
+      /* diagnostics only — ignore */
+    }
   } catch (error) {
     console.error('[Enterprise] failed to merge enterprise openclaw.json:', error);
   }

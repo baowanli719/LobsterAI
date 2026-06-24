@@ -1,4 +1,5 @@
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon, LockClosedIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { branding } from '@shared/branding';
 import { ProviderName } from '@shared/providers';
 import React from 'react';
 import { createPortal } from 'react-dom';
@@ -90,6 +91,8 @@ export const ModelAccessPromptModal: React.FC<ModelAccessPromptModalProps> = ({
   const handlePrimary = async () => {
     if (promptKind === ModelAccessPromptKind.Login) {
       onClose();
+      // 公司版：登录已禁用，静默忽略
+      if (branding.hideLogin) return;
       await authService.login();
       return;
     }

@@ -1,3 +1,5 @@
+import { applyBrandTokens } from '@shared/branding';
+
 import { configService } from './config';
 
 // 支持的语言类型
@@ -124,7 +126,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     imageVisionHint:
       '当前模型未启用图片输入，图片将以文件路径形式发送。若该模型本身支持图片理解，可在模型配置中开启图片输入选项。',
     copied: '已复制',
-    copyrightHolder: '网易有道 版权所有',
+    copyrightHolder: '{company} 版权所有',
     noModelsAvailable: '暂无可用模型',
     addFirstModel: '添加第一个模型',
     testConnection: '测试连接',
@@ -223,13 +225,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
     sendMessageShortcut: '发送消息',
     shortcutConflict: '快捷键 "{0}" 已被 "{1}" 使用',
     shortcutSearchPlaceholder: '搜索快捷键',
-    shortcutScopeHint: '快捷键仅在 LobsterAI 窗口获得焦点时生效；正在编辑输入框时不会触发全局快捷键。',
+    shortcutScopeHint: '快捷键仅在 {appName} 窗口获得焦点时生效；正在编辑输入框时不会触发全局快捷键。',
     shortcutNoResults: '没有匹配的快捷键',
     shortcutClear: '清除快捷键',
     shortcutEditCommand: '更改 {command} 的快捷键',
     shortcutPressShortcut: '按下快捷键',
     shortcutResetAll: '全部恢复默认值',
-    shortcutGroupCowork: 'LobsterAI',
+    shortcutGroupCowork: '{appName}',
     shortcutGroupAgent: 'Agent',
     shortcutGroupNavigation: '导航',
     shortcutGroupSettingsTabs: '设置页',
@@ -237,7 +239,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     shortcutFocusPrompt: '聚焦输入框',
     shortcutStopCurrentTask: '停止当前任务',
     shortcutToggleArtifacts: '显示/隐藏 Artifacts 面板',
-    shortcutOpenCowork: '打开 LobsterAI',
+    shortcutOpenCowork: '打开 {appName}',
     shortcutOpenScheduledTasks: '打开定时任务',
     shortcutOpenKits: '打开专家套件',
     shortcutOpenSkills: '打开技能',
@@ -249,13 +251,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
     shortcutShowCurrentAgentTasks: '查看当前 Agent 任务记录',
     shortcutOpenAgentTaskSlot: '打开当前 Agent 任务 {slot}',
     shortcutOpenSettingsTab: '打开设置：{tab}',
-    shortcutDescNewChat: '开始一个新的 LobsterAI 任务',
-    shortcutDescFocusPrompt: '跳回 LobsterAI 并聚焦当前输入框',
+    shortcutDescNewChat: '开始一个新的 {appName} 任务',
+    shortcutDescFocusPrompt: '跳回 {appName} 并聚焦当前输入框',
     shortcutDescStopCurrentTask: '停止正在运行的 Cowork 任务',
     shortcutDescSearch: '搜索并打开历史任务',
     shortcutDescToggleArtifacts: '在当前会话中显示或隐藏预览侧栏',
     shortcutDescSendMessage: '选择输入框里发送消息的按键方式',
-    shortcutDescOpenCowork: '切换到 LobsterAI 任务视图',
+    shortcutDescOpenCowork: '切换到 {appName} 任务视图',
     shortcutDescOpenScheduledTasks: '切换到定时任务视图',
     shortcutDescOpenKits: '切换到专家套件视图',
     shortcutDescOpenSkills: '切换到技能视图',
@@ -285,7 +287,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     authLoginRequired: '请先登录后再开始对话。',
     authLoginRequiredBtn: '登录',
     authQuotaExhausted:
-      '今日免费额度已用完。您可以登录 LobsterAI Portal 购买套餐或积分包继续使用，或在设置中配置自己的 API Key。',
+      '今日免费额度已用完。您可以登录 {appName} Portal 购买套餐或积分包继续使用，或在设置中配置自己的 API Key。',
     authTopUpLink: '充值',
     authSettingsLink: '设置',
     authLoginToChat: '登录后即可开始聊天',
@@ -637,9 +639,9 @@ const translations: Record<LanguageType, Record<string, string>> = {
     initializationError: '初始化应用程序失败。请检查您的配置。',
     apiKeyNotConfigured: 'API密钥未配置。请在设置中设置您的API密钥。',
 
-    // LobsterAI
-    cowork: 'LobsterAI',
-    coworkSettings: 'LobsterAI 设置',
+    // {appName}
+    cowork: '{appName}',
+    coworkSettings: '{appName} 设置',
     coworkHistory: '任务记录',
     coworkNoSessions: '暂无任务记录',
     coworkNoSessionsHint: '在右侧输入框中开始你的第一个对话',
@@ -649,13 +651,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkPlaceholder: '分配一个任务或提问任何问题',
     coworkWorkingDirectory: '工作目录',
     coworkWorkingDirectoryPlaceholder: '输入项目路径',
-    coworkWorkingDirectoryHint: 'LobsterAI 将在此目录下执行命令',
+    coworkWorkingDirectoryHint: '{appName} 将在此目录下执行命令',
     coworkSystemPrompt: '系统提示词',
-    coworkSystemPromptPlaceholder: '为 LobsterAI 设置自定义指令...',
-    coworkSystemPromptHint: '可选的系统提示词，用于自定义 LobsterAI 的行为',
+    coworkSystemPromptPlaceholder: '为 {appName} 设置自定义指令...',
+    coworkSystemPromptHint: '可选的系统提示词，用于自定义 {appName} 的行为',
     coworkModelSettingsRequired: '请先在模型设置中配置可用模型与 API Key。',
     coworkModelSettingsTitle: '模型设置',
-    coworkModelSettingsHint: 'LobsterAI 使用模型设置中的当前模型与提供商配置。',
+    coworkModelSettingsHint: '{appName} 使用模型设置中的当前模型与提供商配置。',
     coworkModelSettingsAction: '前往模型设置',
     modelGroupServer: '套餐模型',
     modelGroupUser: '自定义模型',
@@ -754,7 +756,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     openClawDataBackupFailed: '数据备份失败，请重试。',
     openClawDataBackupSavedTitle: '备份文件已保存',
     openClawDataBackupSize: '大小',
-    openClawDataBackupBlockingTitle: '正在备份 LobsterAI 数据',
+    openClawDataBackupBlockingTitle: '正在备份 {appName} 数据',
     openClawDataBackupBlockingDesc: '备份期间应用会暂时锁定，请等待备份完成后再继续操作。',
     openClawDataBackupBlockingWarning: '请不要关闭应用。关闭应用会中断备份，并可能留下不完整的备份文件。',
     openClawDataMigrationTitle: '数据迁移',
@@ -764,10 +766,10 @@ const translations: Record<LanguageType, Record<string, string>> = {
     openClawDataMigrationSuccess: '数据迁移已完成。',
     openClawDataMigrationFailed: '数据迁移失败',
     openClawDataMigrationRestarting: '已选择备份文件，应用将重启并导入数据。',
-    openClawDataMigrationBlockingTitle: '正在准备导入 LobsterAI 数据',
+    openClawDataMigrationBlockingTitle: '正在准备导入 {appName} 数据',
     openClawDataMigrationBlockingDesc: '导入期间应用会暂时锁定。选择备份文件后，应用会自动重启并完成导入。',
     openClawDataMigrationBlockingWarning: '请不要关闭应用。关闭应用会中断导入准备流程，可能需要重新选择备份文件。',
-    openClawDataMigrationConfirmTitle: '导入 LobsterAI 数据备份？',
+    openClawDataMigrationConfirmTitle: '导入 {appName} 数据备份？',
     openClawDataMigrationConfirmDesc: '导入会替换当前应用数据，包括登录态、会话、配置、技能、记忆和 OpenClaw 状态。',
     openClawDataMigrationConfirmSafeDesc: '应用会先为当前数据生成回滚备份，然后重启并完成导入。项目工作目录不会被导入包覆盖。',
     openClawDataMigrationConfirmAction: '选择备份并导入',
@@ -930,7 +932,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkDreamingAdvancedSummaryPromotedToday: '今日已提升',
     coworkDreamingLoadError: '加载 Dreaming 数据失败',
     coworkDreamingGatewayUnavailable: '引擎未连接，无法加载 Dreaming 数据',
-    coworkConfigSaveFailed: '保存 LobsterAI 配置失败，请稍后重试。',
+    coworkConfigSaveFailed: '保存 {appName} 配置失败，请稍后重试。',
     coworkApiProviderModel: '从模型设置选择',
     coworkApiProviderModelCustom: '自定义',
     coworkApiProviderModelHint: '仅显示已启用且已配置 API Key/地址的模型',
@@ -948,9 +950,9 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkStatusCompleted: '已完成',
     coworkStatusError: '错误',
     coworkPermissionRequired: '需要权限确认',
-    coworkPermissionDescription: 'LobsterAI 请求执行以下操作',
+    coworkPermissionDescription: '{appName} 请求执行以下操作',
     coworkSelectionRequired: '请选择',
-    coworkSelectionDescription: 'LobsterAI 需要你做出选择',
+    coworkSelectionDescription: '{appName} 需要你做出选择',
     coworkToolName: '工具名称',
     coworkToolInput: '工具参数',
     coworkToolResult: '执行结果',
@@ -1003,7 +1005,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkQuestionWizardOtherPlaceholder: '请输入自定义答案...',
     coworkQuestionWizardSelectAtLeastOne: '请至少选择一个选项',
     coworkQuestionWizardAnswerRequired: '请选择或输入答案',
-    coworkWelcome: 'LobsterAI',
+    coworkWelcome: '{appName}',
     coworkDescription: '7×24 小时帮你干活的全场景个人助理 Agent',
     coworkCurrentAgent: '当前 Agent',
     coworkSelectAgent: '选择 Agent',
@@ -1296,7 +1298,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
       '本次消息过大，请减少附件、压缩图片或拆分提交。（单次整体需小于 30MB）',
     coworkErrorCouldNotProcessPdf: '无法处理 PDF 文件。请尝试将 PDF 转换为文本格式后重新发送。',
     coworkErrorModelNotFound: '请求的模型不存在或不可用，请在设置中检查模型配置。',
-    coworkGatewaySessionSyncTimeout: 'OpenClaw 引擎响应缓慢，消息尚未发送。请等待 1~2 分钟后重新发送；若频繁出现，请检查系统内存与磁盘占用，并将 LobsterAI 加入杀毒软件白名单。',
+    coworkGatewaySessionSyncTimeout: 'OpenClaw 引擎响应缓慢，消息尚未发送。请等待 1~2 分钟后重新发送；若频繁出现，请检查系统内存与磁盘占用，并将 {appName} 加入杀毒软件白名单。',
     coworkErrorGatewayDisconnected: 'AI 引擎连接中断，请重试。如果问题持续，请尝试重启应用。',
     coworkErrorServiceRestart: 'AI 引擎正在重启，请稍后重试。',
     coworkErrorGatewayDraining: 'AI 引擎正在重启中，请稍等片刻后重试。',
@@ -2020,12 +2022,12 @@ const translations: Record<LanguageType, Record<string, string>> = {
     useSystemProxyDescription: '开启后网络请求将跟随系统代理（保存后生效）',
     browserWebAccessTab: '浏览器',
     browserWebAccessTitle: '浏览器',
-    browserWebAccessDescription: '使用 LobsterAI 独立浏览器，管理网页打开方式和访问规则。',
+    browserWebAccessDescription: '使用 {appName} 独立浏览器，管理网页打开方式和访问规则。',
     browserSectionTitle: '浏览器',
     browserEnableTool: '启用浏览器',
     browserEnableToolDescription: '允许 Agent 打开和操作网页。',
     browserProfileManaged: '独立浏览器（推荐）',
-    browserProfileManagedDescription: 'LobsterAI 启动一个专用浏览器，稳定、干净。',
+    browserProfileManagedDescription: '{appName} 启动一个专用浏览器，稳定、干净。',
     browserProfileUser: '我的 Chrome',
     browserProfileUserDescription: '适合需要登录态的网站，例如 X、Google 或内部系统。',
     browserNetworkSectionTitle: '网络访问模式',
@@ -2063,7 +2065,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     browserResetFailed: '清除独立浏览器数据失败',
     browserAdvancedTitle: '高级设置',
     browserFollowGlobalProxy: '浏览器跟随全局代理',
-    browserFollowGlobalProxyDescription: '默认开启。关闭后仅作为 LobsterAI 配置保留，当前版本仍受浏览器自身代理设置影响。',
+    browserFollowGlobalProxyDescription: '默认开启。关闭后仅作为 {appName} 配置保留，当前版本仍受浏览器自身代理设置影响。',
     browserEvaluateEnabled: '允许页面内执行脚本',
     browserEvaluateEnabledDescription: '关闭后更保守，但部分复杂网页操作可能不可用。',
     browserEfficientSnapshot: '使用精简网页快照',
@@ -2080,13 +2082,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
     browserAllowedHostnames: '允许的域名',
     browserAllowedHostnamesDescription: '无需询问即可打开的域名',
     browserBlockedHostnames: '已屏蔽的域名',
-    browserBlockedHostnamesDescription: 'LobsterAI 不会打开这些网站',
+    browserBlockedHostnamesDescription: '{appName} 不会打开这些网站',
     browserHostnameListEmpty: '尚未添加域名',
     browserHostnameInputPlaceholder: 'example.com',
     browserAddBlockedHostnameTitle: '添加已屏蔽域名',
-    browserAddBlockedHostnameDescription: '这意味着 LobsterAI 不会打开此 URL',
+    browserAddBlockedHostnameDescription: '这意味着 {appName} 不会打开此 URL',
     browserAddAllowedHostnameTitle: '添加允许域名',
-    browserAddAllowedHostnameDescription: '这意味着 LobsterAI 可以打开此域名',
+    browserAddAllowedHostnameDescription: '这意味着 {appName} 可以打开此域名',
     browserRemoteCdpTimeout: '远程连接超时（毫秒）',
     browserRemoteCdpHandshakeTimeout: '远程握手超时（毫秒）',
     browserExtraArgs: '浏览器启动参数',
@@ -2399,12 +2401,12 @@ const translations: Record<LanguageType, Record<string, string>> = {
       '定时任务「{name}」存在异常数据，已自动修正显示，建议重新编辑该任务',
 
     // 隐私协议弹窗
-    privacyDialogTitle: '网易有道LobsterAI服务协议',
-    privacyDialogDesc: '在使用网易有道LobsterAI之前，请您仔细阅读{link}内容，并进行确认。',
-    privacyDialogLinkText: '网易有道LobsterAI服务协议',
+    privacyDialogTitle: '{appName}服务协议',
+    privacyDialogDesc: '在使用{company}{appName}之前，请您仔细阅读{link}内容，并进行确认。',
+    privacyDialogLinkText: '{company}{appName}服务协议',
     privacyDialogAccept: '我已阅读并同意',
     privacyDialogReject: '拒绝',
-    welcomeTitle: '欢迎使用LobsterAI',
+    welcomeTitle: '欢迎使用{appName}',
     welcomeSubtitle: '超多AI功能等你探索～',
     welcomePromo: '新用户限时送百万Token',
     welcomeLogin: '登录',
@@ -2622,7 +2624,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     imageVisionHint:
       'Image input is not enabled for the current model. Images will be sent as file paths. If the model supports vision, you can enable image input in the model configuration.',
     copied: 'Copied',
-    copyrightHolder: 'NetEase Youdao. All rights reserved.',
+    copyrightHolder: '{company}. All rights reserved.',
     noModelsAvailable: 'No models available',
     addFirstModel: 'Add First Model',
     testConnection: 'Test Connection',
@@ -2749,13 +2751,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
     sendMessageShortcut: 'Send Message',
     shortcutConflict: 'Shortcut "{0}" is already used by "{1}"',
     shortcutSearchPlaceholder: 'Search shortcuts',
-    shortcutScopeHint: 'Shortcuts only run while the LobsterAI window is focused; global shortcuts are ignored while editing text fields.',
+    shortcutScopeHint: 'Shortcuts only run while the {appName} window is focused; global shortcuts are ignored while editing text fields.',
     shortcutNoResults: 'No matching shortcuts',
     shortcutClear: 'Clear shortcut',
     shortcutEditCommand: 'Change {command} shortcut',
     shortcutPressShortcut: 'Press shortcut',
     shortcutResetAll: 'Reset all to defaults',
-    shortcutGroupCowork: 'LobsterAI',
+    shortcutGroupCowork: '{appName}',
     shortcutGroupAgent: 'Agent',
     shortcutGroupNavigation: 'Navigation',
     shortcutGroupSettingsTabs: 'Settings Tabs',
@@ -2763,7 +2765,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     shortcutFocusPrompt: 'Focus Prompt',
     shortcutStopCurrentTask: 'Stop Current Task',
     shortcutToggleArtifacts: 'Show or Hide Artifacts Panel',
-    shortcutOpenCowork: 'Open LobsterAI',
+    shortcutOpenCowork: 'Open {appName}',
     shortcutOpenScheduledTasks: 'Open Scheduled Tasks',
     shortcutOpenKits: 'Open Kits',
     shortcutOpenSkills: 'Open Skills',
@@ -2775,13 +2777,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
     shortcutShowCurrentAgentTasks: 'Show Current Agent Tasks',
     shortcutOpenAgentTaskSlot: 'Open Current Agent Task {slot}',
     shortcutOpenSettingsTab: 'Open Settings: {tab}',
-    shortcutDescNewChat: 'Start a new LobsterAI task',
-    shortcutDescFocusPrompt: 'Return to LobsterAI and focus the current prompt',
+    shortcutDescNewChat: 'Start a new {appName} task',
+    shortcutDescFocusPrompt: 'Return to {appName} and focus the current prompt',
     shortcutDescStopCurrentTask: 'Stop the running Cowork task',
     shortcutDescSearch: 'Search and open task history',
     shortcutDescToggleArtifacts: 'Show or hide the preview side panel in the current session',
     shortcutDescSendMessage: 'Choose which key sends the prompt input message',
-    shortcutDescOpenCowork: 'Switch to the LobsterAI task view',
+    shortcutDescOpenCowork: 'Switch to the {appName} task view',
     shortcutDescOpenScheduledTasks: 'Switch to the scheduled tasks view',
     shortcutDescOpenKits: 'Switch to the kits view',
     shortcutDescOpenSkills: 'Switch to the skills view',
@@ -2811,7 +2813,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     authLoginRequired: 'Please log in to start a conversation.',
     authLoginRequiredBtn: 'Log In',
     authQuotaExhausted:
-      'Daily free quota exhausted. Visit LobsterAI Portal to purchase a plan or credits, or configure your own API Key in Settings.',
+      'Daily free quota exhausted. Visit {appName} Portal to purchase a plan or credits, or configure your own API Key in Settings.',
     authTopUpLink: 'Top Up',
     authSettingsLink: 'Settings',
     authLoginToChat: 'Log in to start chatting',
@@ -3118,8 +3120,8 @@ const translations: Record<LanguageType, Record<string, string>> = {
     artifactPreviewCardShowLess: 'Show less',
     artifactPreviewCardOpenPreview: 'Open preview',
     artifactPreviewCardOpenWith: 'Open with',
-    artifactPreviewCardLobsterBrowser: 'LobsterAI Browser',
-    artifactPreviewCardOpenInLobsterBrowser: 'Open in LobsterAI Browser',
+    artifactPreviewCardLobsterBrowser: '{appName} Browser',
+    artifactPreviewCardOpenInLobsterBrowser: 'Open in {appName} Browser',
     artifactFileKindWebsite: 'Website',
     artifactFileKindDocument: 'Document',
     artifactFileKindSpreadsheet: 'Spreadsheet',
@@ -3168,9 +3170,9 @@ const translations: Record<LanguageType, Record<string, string>> = {
     initializationError: 'Failed to initialize application. Please check your configuration.',
     apiKeyNotConfigured: 'API key not configured. Please set up your API key in settings.',
 
-    // LobsterAI
-    cowork: 'LobsterAI',
-    coworkSettings: 'LobsterAI Settings',
+    // {appName}
+    cowork: '{appName}',
+    coworkSettings: '{appName} Settings',
     coworkHistory: 'Task History',
     coworkNoSessions: 'No tasks yet',
     coworkNoSessionsHint: 'Start your first conversation in the input box',
@@ -3180,14 +3182,14 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkPlaceholder: 'Assign a task or ask any question',
     coworkWorkingDirectory: 'Working Directory',
     coworkWorkingDirectoryPlaceholder: 'Enter project path',
-    coworkWorkingDirectoryHint: 'LobsterAI will execute commands in this directory',
+    coworkWorkingDirectoryHint: '{appName} will execute commands in this directory',
     coworkSystemPrompt: 'System Prompt',
-    coworkSystemPromptPlaceholder: 'Set custom instructions for LobsterAI...',
-    coworkSystemPromptHint: "Optional system prompt to customize LobsterAI's behavior",
+    coworkSystemPromptPlaceholder: 'Set custom instructions for {appName}...',
+    coworkSystemPromptHint: "Optional system prompt to customize {appName}'s behavior",
     coworkModelSettingsRequired: 'Please configure models and API keys in Model Settings first.',
     coworkModelSettingsTitle: 'Model Settings',
     coworkModelSettingsHint:
-      'LobsterAI uses the current model and provider configuration from Model Settings.',
+      '{appName} uses the current model and provider configuration from Model Settings.',
     coworkModelSettingsAction: 'Go to Model Settings',
     modelGroupServer: 'Plan Models',
     modelGroupUser: 'Custom Models',
@@ -3295,7 +3297,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     openClawDataBackupFailed: 'Failed to back up data. Please try again.',
     openClawDataBackupSavedTitle: 'Backup file saved',
     openClawDataBackupSize: 'Size',
-    openClawDataBackupBlockingTitle: 'Backing up LobsterAI data',
+    openClawDataBackupBlockingTitle: 'Backing up {appName} data',
     openClawDataBackupBlockingDesc:
       'The app is temporarily locked while the backup is running. Wait for the backup to finish before continuing.',
     openClawDataBackupBlockingWarning:
@@ -3307,12 +3309,12 @@ const translations: Record<LanguageType, Record<string, string>> = {
     openClawDataMigrationSuccess: 'Data migration completed.',
     openClawDataMigrationFailed: 'Data migration failed',
     openClawDataMigrationRestarting: 'Backup file selected. The app will restart and import the data.',
-    openClawDataMigrationBlockingTitle: 'Preparing to import LobsterAI data',
+    openClawDataMigrationBlockingTitle: 'Preparing to import {appName} data',
     openClawDataMigrationBlockingDesc:
       'The app is temporarily locked during import preparation. After you choose a backup file, the app will restart and finish the import.',
     openClawDataMigrationBlockingWarning:
       'Do not close the app. Closing it will interrupt import preparation and may require choosing the backup file again.',
-    openClawDataMigrationConfirmTitle: 'Import LobsterAI data backup?',
+    openClawDataMigrationConfirmTitle: 'Import {appName} data backup?',
     openClawDataMigrationConfirmDesc:
       'Importing replaces current app data, including login state, sessions, settings, skills, memory, and OpenClaw state.',
     openClawDataMigrationConfirmSafeDesc:
@@ -3487,7 +3489,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkDreamingAdvancedSummaryPromotedToday: 'promoted today',
     coworkDreamingLoadError: 'Failed to load Dreaming data',
     coworkDreamingGatewayUnavailable: 'Engine not connected, unable to load Dreaming data',
-    coworkConfigSaveFailed: 'Failed to save LobsterAI settings. Please try again.',
+    coworkConfigSaveFailed: 'Failed to save {appName} settings. Please try again.',
     coworkApiProviderModel: 'Select from provider models',
     coworkApiProviderModelCustom: 'Custom',
     coworkApiProviderModelHint:
@@ -3506,9 +3508,9 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkStatusCompleted: 'Completed',
     coworkStatusError: 'Error',
     coworkPermissionRequired: 'Permission Required',
-    coworkPermissionDescription: 'LobsterAI is requesting to perform the following action',
+    coworkPermissionDescription: '{appName} is requesting to perform the following action',
     coworkSelectionRequired: 'Please Choose',
-    coworkSelectionDescription: 'LobsterAI needs your input',
+    coworkSelectionDescription: '{appName} needs your input',
     coworkToolName: 'Tool Name',
     coworkToolInput: 'Tool Input',
     coworkToolResult: 'Result',
@@ -3564,7 +3566,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkQuestionWizardOtherPlaceholder: 'Enter custom answer...',
     coworkQuestionWizardSelectAtLeastOne: 'Please select at least one option',
     coworkQuestionWizardAnswerRequired: 'Please select or enter an answer',
-    coworkWelcome: 'LobsterAI',
+    coworkWelcome: '{appName}',
     coworkDescription: 'A 24/7 personal assistant agent that gets work done for you',
     coworkCurrentAgent: 'Current Agent',
     coworkSelectAgent: 'Select Agent',
@@ -3870,7 +3872,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     coworkErrorModelNotFound:
       'The requested model does not exist or is unavailable. Please check the model configuration in settings.',
     coworkGatewaySessionSyncTimeout:
-      'The OpenClaw engine is responding slowly and your message has not been sent. Please wait a minute or two and resend. If this happens frequently, check system memory and disk usage, and add LobsterAI to your antivirus allowlist.',
+      'The OpenClaw engine is responding slowly and your message has not been sent. Please wait a minute or two and resend. If this happens frequently, check system memory and disk usage, and add {appName} to your antivirus allowlist.',
     coworkErrorGatewayDisconnected:
       'AI engine connection lost. Please retry. If the issue persists, try restarting the app.',
     coworkErrorServiceRestart: 'AI engine is restarting. Please try again later.',
@@ -4630,12 +4632,12 @@ const translations: Record<LanguageType, Record<string, string>> = {
     useSystemProxyDescription: 'When enabled, network requests follow system proxy settings (applies after Save)',
     browserWebAccessTab: 'Browser',
     browserWebAccessTitle: 'Browser',
-    browserWebAccessDescription: 'Use the LobsterAI separate browser and manage page access rules.',
+    browserWebAccessDescription: 'Use the {appName} separate browser and manage page access rules.',
     browserSectionTitle: 'Browser',
     browserEnableTool: 'Enable browser',
     browserEnableToolDescription: 'Allow the agent to open and operate web pages.',
     browserProfileManaged: 'Separate browser (recommended)',
-    browserProfileManagedDescription: 'LobsterAI starts a dedicated browser that is stable and clean.',
+    browserProfileManagedDescription: '{appName} starts a dedicated browser that is stable and clean.',
     browserProfileUser: 'My Chrome',
     browserProfileUserDescription: 'Use this for sites that need your login state, such as X, Google, or internal systems.',
     browserNetworkSectionTitle: 'Network access mode',
@@ -4673,7 +4675,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     browserResetFailed: 'Failed to clear separate browser data',
     browserAdvancedTitle: 'Advanced settings',
     browserFollowGlobalProxy: 'Browser follows global proxy',
-    browserFollowGlobalProxyDescription: 'Enabled by default. Turning it off is stored for LobsterAI, but this version can still be affected by the browser proxy settings.',
+    browserFollowGlobalProxyDescription: 'Enabled by default. Turning it off is stored for {appName}, but this version can still be affected by the browser proxy settings.',
     browserEvaluateEnabled: 'Allow scripts inside pages',
     browserEvaluateEnabledDescription: 'Turning this off is more conservative, but some complex page actions may stop working.',
     browserEfficientSnapshot: 'Use compact page snapshots',
@@ -4690,13 +4692,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
     browserAllowedHostnames: 'Allowed domains',
     browserAllowedHostnamesDescription: 'Domains that can be opened without asking',
     browserBlockedHostnames: 'Blocked domains',
-    browserBlockedHostnamesDescription: 'LobsterAI will not open these websites',
+    browserBlockedHostnamesDescription: '{appName} will not open these websites',
     browserHostnameListEmpty: 'No domains added yet',
     browserHostnameInputPlaceholder: 'example.com',
     browserAddBlockedHostnameTitle: 'Add blocked domain',
-    browserAddBlockedHostnameDescription: 'This means LobsterAI will not open this URL',
+    browserAddBlockedHostnameDescription: 'This means {appName} will not open this URL',
     browserAddAllowedHostnameTitle: 'Add allowed domain',
-    browserAddAllowedHostnameDescription: 'This means LobsterAI can open this domain',
+    browserAddAllowedHostnameDescription: 'This means {appName} can open this domain',
     browserRemoteCdpTimeout: 'Remote connection timeout (ms)',
     browserRemoteCdpHandshakeTimeout: 'Remote handshake timeout (ms)',
     browserExtraArgs: 'Browser launch arguments',
@@ -5018,13 +5020,13 @@ const translations: Record<LanguageType, Record<string, string>> = {
       'Scheduled task "{name}" has abnormal data. Display has been auto-corrected. Consider re-editing this task',
 
     // Privacy dialog
-    privacyDialogTitle: 'NetEase Youdao LobsterAI Terms of Service',
+    privacyDialogTitle: '{appName} Terms of Service',
     privacyDialogDesc:
-      'Before using NetEase Youdao LobsterAI, please carefully read the {link} and confirm.',
-    privacyDialogLinkText: 'NetEase Youdao LobsterAI Terms of Service',
+      'Before using {company} {appName}, please carefully read the {link} and confirm.',
+    privacyDialogLinkText: '{company} {appName} Terms of Service',
     privacyDialogAccept: 'I have read and agree',
     privacyDialogReject: 'Decline',
-    welcomeTitle: 'Welcome to LobsterAI',
+    welcomeTitle: 'Welcome to {appName}',
     welcomeSubtitle: 'Explore a world of AI features~',
     welcomePromo: 'New users get 1M free tokens',
     welcomeLogin: 'Login',
@@ -5148,62 +5150,31 @@ class I18nService {
           // 旧用户已手动设置过语言(非默认值),保留他们的设置
           console.log(`[i18n] Legacy user detected with custom language: ${config.language}`);
           this.currentLanguage = config.language;
-          configService.updateConfig({
-            language_initialized: true,
-          });
         } else {
-          // 新用户或使用默认中文的旧用户:检测系统语言
-          try {
-            const systemLocale = await window.electron.appInfo.getSystemLocale();
-            const defaultLanguage = this.inferLanguageFromLocale(systemLocale);
-
-            console.log(
-              `[i18n] First run detected. System locale: ${systemLocale}, default language: ${defaultLanguage}`,
-            );
-
-            this.currentLanguage = defaultLanguage;
-
-            // 保存语言配置和初始化标记
-            configService.updateConfig({
-              language: defaultLanguage,
-              language_initialized: true,
-            });
-          } catch (error) {
-            console.error('Failed to get system locale:', error);
-            // 如果获取系统语言失败,默认使用英文
-            this.currentLanguage = 'en';
-            configService.updateConfig({
-              language: 'en',
-              language_initialized: true,
-            });
-          }
+          // 公司版：新用户默认使用中文
+          this.currentLanguage = 'zh';
         }
+        configService.updateConfig({
+          language: this.currentLanguage,
+          language_initialized: true,
+        });
       } else {
         // 非首次启动:使用已保存的语言配置
         if (config.language && (config.language === 'zh' || config.language === 'en')) {
           this.currentLanguage = config.language;
         } else {
-          // 如果配置无效,fallback 到英文
-          this.currentLanguage = 'en';
+          // 配置无效时回退到中文
+          this.currentLanguage = 'zh';
           configService.updateConfig({
-            language: 'en',
+            language: 'zh',
           });
         }
       }
     } catch (error) {
       console.error('Failed to initialize language:', error);
-      // 默认使用英文
-      this.currentLanguage = 'en';
+      // 默认使用中文
+      this.currentLanguage = 'zh';
     }
-  }
-
-  // 根据系统语言推断应用语言
-  private inferLanguageFromLocale(systemLocale: string): LanguageType {
-    // 只有 zh-CN (简体中文) 才使用中文,其他所有情况都使用英文
-    if (systemLocale === 'zh-CN') {
-      return 'zh';
-    }
-    return 'en'; // 默认英文 (包括 zh-TW, zh-HK, en-*, 以及其他所有语言)
   }
 
   // 设置语言
@@ -5244,9 +5215,9 @@ class I18nService {
       console.warn(`Translation missing for key: ${key} in language: ${this.currentLanguage}`);
       // 尝试从另一种语言获取
       const fallbackTranslation = translations[this.currentLanguage === 'zh' ? 'en' : 'zh'][key];
-      return fallbackTranslation || key;
+      return applyBrandTokens(fallbackTranslation || key, this.currentLanguage);
     }
-    return translation;
+    return applyBrandTokens(translation, this.currentLanguage);
   }
 
   subscribe(listener: () => void): () => void {

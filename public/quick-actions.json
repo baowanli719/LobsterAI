@@ -42,26 +42,6 @@
       ]
     },
     {
-      "id": "education",
-      "icon": "AcademicCapIcon",
-      "color": "#10B981",
-      "skillMapping": "frontend-design",
-      "prompts": [
-        {
-          "id": "edu-english-words"
-        },
-        {
-          "id": "edu-math-explain"
-        },
-        {
-          "id": "edu-essay-writing"
-        },
-        {
-          "id": "edu-knowledge-explain"
-        }
-      ]
-    },
-    {
       "id": "website",
       "icon": "GlobeAltIcon",
       "color": "#3B82F6",

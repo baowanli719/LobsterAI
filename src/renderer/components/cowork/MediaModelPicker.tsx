@@ -1,4 +1,5 @@
 import { CheckIcon } from '@heroicons/react/24/outline';
+import { branding } from '@shared/branding';
 import { canonicalizeMediaModelId, GPT_IMAGE_2_MODEL_ID, mediaModelDisplayName } from '@shared/mediaModelAliases';
 import { ProviderName } from '@shared/providers';
 import Lottie from 'lottie-react';
@@ -592,6 +593,8 @@ const MediaModelPicker: React.FC<MediaModelPickerProps> = ({ draftKey, disabled 
 
   const handleLogin = async () => {
     setIsOpen(false);
+    // 公司版：登录已禁用，静默忽略
+    if (branding.hideLogin) return;
     await authService.login();
   };
 

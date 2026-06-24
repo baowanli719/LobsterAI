@@ -5,6 +5,31 @@ const path = require('path');
 
 const config = require('../electron-builder.json');
 
+// White-label: pull product identity from the shared branding config so the
+// installer/app name matches the in-app branding (src/shared/branding).
+let branding = {};
+try {
+  branding = require('../src/shared/branding/branding.config.json');
+} catch (error) {
+  console.warn('[Branding] failed to read branding.config.json, using electron-builder.json defaults:', error);
+}
+const brandAppName = typeof branding.appName === 'string' && branding.appName.trim()
+  ? branding.appName.trim()
+  : config.productName;
+const brandAppId = typeof branding.appId === 'string' && branding.appId.trim()
+  ? branding.appId.trim()
+  : config.appId;
+// Executable + artifact filenames must be ASCII (productName may be non-ASCII,
+// e.g. Chinese). Prefer branding.fileName; fall back to ASCII-stripped appName.
+const brandFileNameSource = (typeof branding.fileName === 'string' && branding.fileName.trim())
+  ? branding.fileName.trim()
+  : brandAppName;
+const brandFileName = brandFileNameSource.replace(/[^\x00-\x7F]/g, '').replace(/\s+/g, '') || 'App';
+
+config.appId = brandAppId;
+config.productName = brandAppName;
+config.executableName = brandFileName;
+
 const DEFAULT_KEYFROM = 'official';
 const KEYFROM_PATTERN = /^[a-z0-9_-]{1,64}$/;
 
@@ -75,12 +100,12 @@ delete config.extraResources;
 
 config.dmg = {
   ...(config.dmg || {}),
-  artifactName: `LobsterAI-darwin-\${arch}-\${version}-${keyfrom}.\${ext}`,
+  artifactName: `${brandFileName}-darwin-\${arch}-\${version}-${keyfrom}.\${ext}`,
 };
 
 config.nsis = {
   ...(config.nsis || {}),
-  artifactName: `LobsterAI-Setup-\${arch}-\${version}-${keyfrom}.\${ext}`,
+  artifactName: `${brandFileName}-Setup-\${arch}-\${version}-${keyfrom}.\${ext}`,
 };
 
 console.log(`[Keyfrom] configured artifact keyfrom as ${keyfrom}`);
