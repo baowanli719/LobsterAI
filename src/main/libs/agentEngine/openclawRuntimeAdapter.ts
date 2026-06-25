@@ -246,6 +246,14 @@ type OpenClawRuntimeAdapterOptions = {
   normalizeModelRef?: (modelRef: string) => string;
 };
 
+const LobsterAIChineseResponseInstruction = [
+  '[LobsterAI language instructions]',
+  'Default to Simplified Chinese for all user-visible assistant text.',
+  'This includes tool-call preambles, progress descriptions, interim summaries, and final answers.',
+  'Keep code, file paths, commands, identifiers, API names, quoted source text, and user-requested output languages unchanged.',
+  'If the user explicitly asks for another language, follow that request for the relevant content.',
+].join('\n');
+
 const SessionModelPatchSource = {
   SessionOverride: 'sessionOverride',
   AgentModel: 'agentModel',
@@ -3633,6 +3641,7 @@ export class OpenClawRuntimeAdapter extends EventEmitter implements CoworkRuntim
     if (shouldInjectSystemPrompt) {
       sections.push(this.buildSystemPromptPrefix(normalizedSystemPrompt));
     }
+    sections.push(LobsterAIChineseResponseInstruction);
     sections.push(buildOpenClawLocalTimeContextPrompt());
     if (currentModel) {
       sections.push(`[Session info]\nCurrent model: ${currentModel}`);

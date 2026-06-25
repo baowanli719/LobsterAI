@@ -1,4 +1,4 @@
-import { type ProviderConfig,ProviderRegistry } from '@shared/providers';
+import { type ProviderConfig, ProviderName, ProviderRegistry } from '@shared/providers';
 
 import {
   type BrowserWebAccessConfig,
@@ -204,11 +204,8 @@ export const EN_PRIORITY_PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
 export const CHINA_PROVIDERS = [...ProviderRegistry.idsByRegion('china')] as const;
 export const GLOBAL_PROVIDERS = ProviderRegistry.idsByRegion('global');
 
-export const getVisibleProviders = (language: 'zh' | 'en'): readonly string[] => {
-  if (language === 'zh') {
-    return [...CHINA_PROVIDERS];
-  }
-  return ProviderRegistry.idsForEnLocale();
+export const getVisibleProviders = (_language: 'zh' | 'en'): readonly string[] => {
+  return [ProviderName.DeepSeek];
 };
 
 /**

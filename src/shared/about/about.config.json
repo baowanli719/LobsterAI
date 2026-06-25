@@ -1,0 +1,35 @@
+{
+  "productName": "国盛证券AI办公协同",
+  "showUpdateCheck": true,
+  "showExportLogs": true,
+  "infoItems": [
+    {
+      "id": "contactEmail",
+      "label": {
+        "zh": "\u8054\u7cfb\u90ae\u7bb1",
+        "en": "Contact Email"
+      },
+      "value": "baowanli@gszq.com",
+      "action": "copy"
+    },
+    {
+      "id": "userManual",
+      "label": {
+        "zh": "\u7528\u6237\u624b\u518c",
+        "en": "User Manual "
+      },
+      "value": "",
+      "action": "openExternal"
+    }
+  ],
+  "footerLinks": [
+    {
+      "id": "serviceTerms",
+      "label": {
+        "zh": "\u670d\u52a1\u6761\u6b3e",
+        "en": "Terms of Service"
+      },
+      "url": ""
+    }
+  ]
+}

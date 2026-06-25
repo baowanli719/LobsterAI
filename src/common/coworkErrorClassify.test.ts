@@ -30,6 +30,10 @@ test('auth: HTTP 401', () => {
   expect(classifyError('Request failed with status 401')).toBe('coworkErrorAuthInvalid');
 });
 
+test('provider gateway: HTML 403', () => {
+  expect(classifyError('Authentication failed with an HTML 403 response from the provider.')).toBe('coworkErrorProviderForbidden');
+});
+
 test('auth: unauthorized', () => {
   expect(classifyError('Unauthorized access')).toBe('coworkErrorAuthInvalid');
 });

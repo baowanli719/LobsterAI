@@ -35,7 +35,6 @@ const translations: Record<LanguageType, Record<string, string>> = {
     aboutVersion: '版本',
     aboutContactEmail: '联系邮箱',
     aboutUserManual: '用户手册',
-    aboutUserCommunity: '官方社群',
     aboutServiceTerms: '服务条款',
     aboutExportLogs: '导出日志',
     aboutExportingLogs: '导出中...',
@@ -1290,6 +1289,8 @@ const translations: Record<LanguageType, Record<string, string>> = {
 
     // Cowork 错误消息
     coworkErrorAuthInvalid: 'API 密钥无效或已过期，请在设置中检查并更新您的 API 密钥。',
+    coworkErrorProviderForbidden:
+      '模型网关拒绝访问，请检查内网/VPN、网关白名单或鉴权令牌后重试。',
     coworkErrorFreeQuotaExhausted:
       '当前模型的免费额度已用完，升级套餐后可继续使用。\n\n[立即升级](https://lobsterai.youdao.com/portal)',
     coworkErrorInsufficientBalance: 'API 余额不足，请充值后重试。',
@@ -2528,7 +2529,6 @@ const translations: Record<LanguageType, Record<string, string>> = {
     aboutVersion: 'Version',
     aboutContactEmail: 'Contact Email',
     aboutUserManual: 'User Manual',
-    aboutUserCommunity: 'Official Community',
     aboutServiceTerms: 'Terms of Service',
     aboutExportLogs: 'Export Logs',
     aboutExportingLogs: 'Exporting...',
@@ -3860,6 +3860,8 @@ const translations: Record<LanguageType, Record<string, string>> = {
     // Cowork error messages
     coworkErrorAuthInvalid:
       'Invalid or expired API key. Please check and update your API key in settings.',
+    coworkErrorProviderForbidden:
+      'The model gateway rejected the request. Check intranet/VPN access, gateway allowlists, or the auth token and try again.',
     coworkErrorFreeQuotaExhausted:
       'The current model\'s free quota has been used up. Upgrade your plan to continue.\n\n[Upgrade now](https://lobsterai.youdao.com/portal)',
     coworkErrorInsufficientBalance: 'Insufficient API balance. Please top up and try again.',

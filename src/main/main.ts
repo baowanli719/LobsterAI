@@ -2469,7 +2469,6 @@ const getTaskCompletionNotifier = (): TaskCompletionNotifier => {
   if (!taskCompletionNotifier) {
     taskCompletionNotifier = new TaskCompletionNotifier({
       getWindow: () => mainWindow,
-      getNotificationIconPath,
       getNotificationSettings: () =>
         getStore().get<AppConfigSettings>('app_config')?.notificationSettings,
       focusMainWindow: focusMainWindowForReason,
