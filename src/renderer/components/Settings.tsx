@@ -2,8 +2,8 @@ import { ArchiveBoxIcon, ArrowPathIcon, ArrowPathRoundedSquareIcon, ChatBubbleLe
 import React, { useCallback,useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { aboutConfig, type AboutInfoItem,AboutInfoItemAction } from '../../shared/about';
 import { type AppUpdateInfo,type AppUpdateRuntimeState,AppUpdateSource,AppUpdateStatus } from '../../shared/appUpdate/constants';
-import { aboutConfig, AboutInfoItemAction, type AboutInfoItem } from '../../shared/about';
 import { branding } from '../../shared/branding';
 import {
   type BrowserWebAccessConfig,

@@ -10,6 +10,21 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -Er
   $Global:PSNativeCommandUseErrorActionPreference = $false
 }
 
+# The renderer bundle exceeds Node's default ~2GB heap and crashes `vite build` with
+# "JavaScript heap out of memory". Raise the limit (preserving any caller-provided value).
+if (-not $env:NODE_OPTIONS) {
+  $env:NODE_OPTIONS = '--max-old-space-size=4096'
+} elseif ($env:NODE_OPTIONS -notmatch 'max-old-space-size') {
+  $env:NODE_OPTIONS = "$env:NODE_OPTIONS --max-old-space-size=4096"
+}
+
+# Stop pnpm from auto-running an install before each `pnpm run`/`pnpm exec`. On Windows
+# that implicit install fires `electron-builder install-app-deps`, which then fails to
+# spawn pnpm to rebuild native modules ("pnpm.mjs: %1 is not a valid Win32 application").
+# Native deps ship working prebuilds and packaging already uses --config.npmRebuild=false,
+# so that rebuild is unnecessary here. Run `pnpm install` manually when dependencies change.
+$env:npm_config_verify_deps_before_run = 'false'
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $logPath = Join-Path $env:TEMP ('lobsterai-dist-win-fast-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
 $summary = New-Object System.Collections.Generic.List[object]

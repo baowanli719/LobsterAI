@@ -38,6 +38,11 @@ nul
 .work.env
 .keyfrom-build/
 
+# OpenClaw request-capture debug artifacts (local diagnostics only)
+openclaw-fetch-hook.cjs
+openclaw-last-body.json
+openclaw-request-capture.jsonl
+
 .playwright-mcp/
 .cowork-temp/
 .sisyphus/
