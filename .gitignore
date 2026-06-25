@@ -48,8 +48,10 @@ openclaw-request-capture.jsonl
 .sisyphus/
 .idea/
 
-# editorconfig files
-.vscode/
+# editor config: ignore personal VS Code settings, but share run/debug configs
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
 
 sandbox/
 

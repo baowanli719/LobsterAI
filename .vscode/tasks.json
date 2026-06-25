@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev: electron",
+      "type": "npm",
+      "script": "electron:dev",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "detail": "Vite dev server (5175) + Electron. Reuses the prebuilt OpenClaw runtime."
+    },
+    {
+      "label": "dev: electron (build OpenClaw first)",
+      "type": "npm",
+      "script": "electron:dev:openclaw",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "detail": "First run only: clones & builds the OpenClaw runtime (slow), then starts dev."
+    },
+    {
+      "label": "lint",
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": ["$eslint-stylish"],
+      "detail": "ESLint over src/"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Dev: Electron (run)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run electron:dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Dev: Electron (build OpenClaw first)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run electron:dev:openclaw",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
