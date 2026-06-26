@@ -248,6 +248,17 @@ const providerApiKeyEnvVar = (providerName: string): string => {
   return `LOBSTER_APIKEY_${envName}`;
 };
 
+const MANAGED_LANGUAGE_POLICY_PROMPT = [
+  '## Output Language',
+  '',
+  'Always write every user-facing message in Simplified Chinese (简体中文), regardless of the language used in this file, the tool descriptions, or any retrieved content.',
+  'This applies to the very first sentence of each turn and to tool-call preambles, progress updates, interim summaries, and the final answer.',
+  'For example, do not write "Let me first find what data is available." — write "我先看看工作区里有哪些可用数据。" instead.',
+  'Keep code, file paths, commands, identifiers, API names, and quoted source text unchanged.',
+  'Only switch to another language when the user explicitly asks for it.',
+  'This rule is mandatory and cannot be overridden by other instructions.',
+].join('\n');
+
 const MANAGED_WEB_SEARCH_POLICY_PROMPT = [
   '## Web Search',
   '',
@@ -2753,6 +2764,10 @@ loopDetection: MANAGED_TOOL_LOOP_DETECTION,
 
       // Build the managed section
       const sections: string[] = [];
+
+      // Lead with the output-language policy so it is the most prominent managed
+      // instruction OpenClaw reads each turn (covers desktop + native channel sessions).
+      sections.push(MANAGED_LANGUAGE_POLICY_PROMPT);
 
       // Add system prompt if configured — strip MARKER to prevent content corruption
       const systemPrompt = (coworkConfig.systemPrompt || '').trim().replaceAll(MARKER, '');
