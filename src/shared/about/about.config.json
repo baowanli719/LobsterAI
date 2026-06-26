@@ -4,6 +4,24 @@
   "showExportLogs": true,
   "infoItems": [
     {
+      "id": "contactPerson",
+      "label": {
+        "zh": "联系人",
+        "en": "Contact"
+      },
+      "value": "包万里",
+      "action": "text"
+    },
+    {
+      "id": "maintenanceDept",
+      "label": {
+        "zh": "维护部门",
+        "en": "Maintenance Dept."
+      },
+      "value": "信息技术部",
+      "action": "text"
+    },
+    {
       "id": "contactEmail",
       "label": {
         "zh": "\u8054\u7cfb\u90ae\u7bb1",
