@@ -32,6 +32,8 @@ export interface BrandingConfig {
   hideLogin: boolean;
   /** Show the image/video generation model picker in the prompt input. */
   showMediaGeneration: boolean;
+  /** Show IM bot channels (DingTalk/Feishu/Wecom/QQ/...) and auto-start their gateways. */
+  showImChannels: boolean;
 }
 
 const DEFAULTS: BrandingConfig = {
@@ -42,6 +44,7 @@ const DEFAULTS: BrandingConfig = {
   logo: 'logo.png',
   hideLogin: false,
   showMediaGeneration: true,
+  showImChannels: true,
 };
 
 type RawBranding = {
@@ -52,6 +55,7 @@ type RawBranding = {
   logo?: unknown;
   hideLogin?: unknown;
   showMediaGeneration?: unknown;
+  showImChannels?: unknown;
 };
 
 const str = (value: unknown): string | undefined =>
@@ -73,6 +77,9 @@ function resolveBranding(): BrandingConfig {
     showMediaGeneration: typeof c.showMediaGeneration === 'boolean'
       ? c.showMediaGeneration
       : DEFAULTS.showMediaGeneration,
+    showImChannels: typeof c.showImChannels === 'boolean'
+      ? c.showImChannels
+      : DEFAULTS.showImChannels,
   };
 }
 

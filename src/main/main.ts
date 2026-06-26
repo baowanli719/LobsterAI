@@ -34,6 +34,7 @@ import { AgentId, AgentIpcChannel } from '../shared/agent/constants';
 import { AppUpdateIpc } from '../shared/appUpdate/constants';
 import { ArtifactBrowserPartition, ArtifactPreviewIpc, ArtifactPreviewProtocol } from '../shared/artifactPreview/constants';
 import { AuthIpcChannel } from '../shared/auth/constants';
+import { branding } from '../shared/branding';
 import {
   type BrowserDiagnosticResultStep,
   BrowserDiagnosticStatus,
@@ -3294,7 +3295,7 @@ if (!gotTheLock) {
   ipcMain.on('network:status-change', (_event, status: 'online' | 'offline') => {
     console.log(`[Main] Network status changed: ${status}`);
 
-    if (status === 'online' && imGatewayManager) {
+    if (status === 'online' && imGatewayManager && branding.showImChannels) {
       console.log('[Main] Network restored, reconnecting IM gateways...');
       imGatewayManager.reconnectAllDisconnected();
     }
@@ -10326,12 +10327,15 @@ if (!gotTheLock) {
       handleDeepLink(coldStartDeepLink);
     }
 
-    // Auto-reconnect IM bots that were enabled before restart
-    getIMGatewayManager()
-      .startAllEnabled()
-      .catch(error => {
-        console.error('[IM] Failed to auto-start enabled gateways:', error);
-      });
+    // Auto-reconnect IM bots that were enabled before restart.
+    // Skipped entirely when the white-label disables IM channels.
+    if (branding.showImChannels) {
+      getIMGatewayManager()
+        .startAllEnabled()
+        .catch(error => {
+          console.error('[IM] Failed to auto-start enabled gateways:', error);
+        });
+    }
 
     // Reconnect OpenClaw gateway WS after system wake from sleep/suspend
     powerMonitor.on('resume', () => {

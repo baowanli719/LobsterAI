@@ -633,7 +633,7 @@ const App: React.FC = () => {
       }
 
       const settingsTabShortcut = SETTINGS_TAB_SHORTCUT_ACTIONS.find(({ action }) => matchesAction(action));
-      if (settingsTabShortcut) {
+      if (settingsTabShortcut && !(settingsTabShortcut.initialTab === 'im' && !branding.showImChannels)) {
         event.preventDefault();
         handleShowSettings({ initialTab: settingsTabShortcut.initialTab });
         return;

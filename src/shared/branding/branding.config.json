@@ -9,5 +9,6 @@
   "logo": "gszq1.png",
   "hideLogin": true,
   "showMediaGeneration": false,
+  "showImChannels": false,
   "fileName": "GSAIOffice"
 }
