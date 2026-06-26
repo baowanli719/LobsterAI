@@ -30,6 +30,8 @@ export interface BrandingConfig {
   logo: string;
   /** Hide the in-app login entry (no-login / internal-gateway deployments). */
   hideLogin: boolean;
+  /** Show the image/video generation model picker in the prompt input. */
+  showMediaGeneration: boolean;
 }
 
 const DEFAULTS: BrandingConfig = {
@@ -39,6 +41,7 @@ const DEFAULTS: BrandingConfig = {
   appId: 'com.lobsterai.app',
   logo: 'logo.png',
   hideLogin: false,
+  showMediaGeneration: true,
 };
 
 type RawBranding = {
@@ -48,6 +51,7 @@ type RawBranding = {
   appId?: unknown;
   logo?: unknown;
   hideLogin?: unknown;
+  showMediaGeneration?: unknown;
 };
 
 const str = (value: unknown): string | undefined =>
@@ -66,6 +70,9 @@ function resolveBranding(): BrandingConfig {
     appId: str(c.appId) ?? DEFAULTS.appId,
     logo: str(c.logo) ?? DEFAULTS.logo,
     hideLogin: typeof c.hideLogin === 'boolean' ? c.hideLogin : DEFAULTS.hideLogin,
+    showMediaGeneration: typeof c.showMediaGeneration === 'boolean'
+      ? c.showMediaGeneration
+      : DEFAULTS.showMediaGeneration,
   };
 }
 

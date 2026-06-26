@@ -8,5 +8,6 @@
   "appId": "com.gszq.office.app",
   "logo": "gszq1.png",
   "hideLogin": true,
+  "showMediaGeneration": false,
   "fileName": "GSAIOffice"
 }
