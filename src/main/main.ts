@@ -6372,7 +6372,11 @@ if (!gotTheLock) {
         if (shouldSyncOpenClawConfig) {
           syncOpenClawConfig({
             reason: workingDirectoryChanged ? 'agent-working-directory-updated' : 'agent-updated',
-            restartGatewayIfRunning: workingDirectoryChanged,
+            // A working-directory change only affects the cwd of the next session
+            // (resolved per-session from the agent record), so just sync the config.
+            // Restarting the gateway here forces a disruptive full client reload, and
+            // the cowork-config path already treats workingDirectory as sync-only.
+            restartGatewayIfRunning: false,
           }).catch(err => {
             console.error('[OpenClaw] config sync after agent update failed:', err);
           });
