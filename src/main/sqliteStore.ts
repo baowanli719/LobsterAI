@@ -5,7 +5,7 @@ import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
 
-import { AgentId, DefaultAgentAvatarIcon, DefaultAgentProfile, LegacyAgentName, normalizeAgentAvatarIcon } from '../shared/agent';
+import { AgentAvatarSvg, AgentId, DefaultAgentAvatarIcon, DefaultAgentProfile, encodeAgentAvatarIcon, LegacyAgentName, normalizeAgentAvatarIcon } from '../shared/agent';
 import { DB_FILENAME } from './appConstants';
 import {
   openSqliteDatabaseWithRecovery,
@@ -497,6 +497,15 @@ export class SqliteStore {
           this.db
             .prepare('UPDATE agents SET name = ?, updated_at = ? WHERE id = ?')
             .run(DefaultAgentProfile.Name, Date.now(), AgentId.Main);
+          this.didRunMigration = true;
+        }
+        // Upgrade the legacy default (lobster) avatar to the current default,
+        // but never override an avatar the user has customized to something else.
+        const legacyDefaultIcon = encodeAgentAvatarIcon({ svg: AgentAvatarSvg.Lobster });
+        if (mainAgent.icon?.trim() === legacyDefaultIcon && DefaultAgentAvatarIcon !== legacyDefaultIcon) {
+          this.db
+            .prepare('UPDATE agents SET icon = ?, updated_at = ? WHERE id = ?')
+            .run(DefaultAgentAvatarIcon, Date.now(), AgentId.Main);
           this.didRunMigration = true;
         }
       }

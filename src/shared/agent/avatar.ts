@@ -52,7 +52,7 @@ const AGENT_AVATAR_PART_COUNT = 2;
 const AGENT_AVATAR_SVGS = new Set<string>(Object.values(AgentAvatarSvg));
 
 export const DefaultAgentAvatar = {
-  svg: AgentAvatarSvg.Lobster,
+  svg: AgentAvatarSvg.Folder,
 } as const satisfies DesignedAgentAvatar;
 
 export const isAgentAvatarSvg = (value: string): value is AgentAvatarSvg => {

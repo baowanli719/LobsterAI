@@ -1,48 +1,16 @@
 import React from 'react';
 
+// Default workspace icon — a folder. Uses currentColor so it adapts to the
+// surrounding text/selection color.
 const DefaultAgentIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
-    fill="none"
+    fill="currentColor"
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#default-agent-fill)" />
-    <path
-      d="M8.45 8.15C7.2 7.8 5.9 8.75 5.62 10.48c-.25 1.58.52 2.82 1.62 2.82.7 0 1.25-.36 1.68-.96"
-      fill="white"
-      fillOpacity="0.96"
-    />
-    <path
-      d="M15.55 8.15c1.25-.35 2.55.6 2.83 2.33.25 1.58-.52 2.82-1.62 2.82-.7 0-1.25-.36-1.68-.96"
-      fill="white"
-      fillOpacity="0.96"
-    />
-    <path
-      d="M12 8.85c1.58 0 2.82 2.05 2.82 4.75v1.6c0 .44-.36.8-.8.8H9.98a.8.8 0 0 1-.8-.8v-1.6c0-2.7 1.24-4.75 2.82-4.75Z"
-      fill="white"
-      fillOpacity="0.96"
-    />
-    <path
-      d="M9.35 17.55h5.3"
-      stroke="white"
-      strokeWidth="1.3"
-      strokeLinecap="round"
-    />
-    <path
-      d="M10.9 8.9c-.14-1.05-.62-1.92-1.5-2.55M13.1 8.9c.14-1.05.62-1.92 1.5-2.55"
-      stroke="white"
-      strokeWidth="1.05"
-      strokeLinecap="round"
-    />
-    <defs>
-      <linearGradient id="default-agent-fill" x1="4.2" y1="3.2" x2="20.2" y2="21.2" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#ff7b58" />
-        <stop offset="0.46" stopColor="#ff3d24" />
-        <stop offset="1" stopColor="#d92216" />
-      </linearGradient>
-    </defs>
+    <path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" />
   </svg>
 );
 
