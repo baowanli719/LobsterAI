@@ -195,6 +195,7 @@ import {
   getPortalTasksUrl,
   getServerApiBaseUrl,
   getSkillStoreUrl,
+  isCloudServicesDisabled,
   refreshEndpointsTestMode,
 } from './libs/endpoints';
 import {
@@ -3597,6 +3598,7 @@ if (!gotTheLock) {
    * Helper: Fetch with Bearer token, auto-refresh on 401 and retry once.
    */
   const fetchWithAuth = async (url: string, options?: RequestInit): Promise<Response> => {
+    if (isCloudServicesDisabled()) throw new Error('Cloud services are disabled');
     const tokens = getAuthTokens();
     if (!tokens) throw new Error('No auth tokens');
 
@@ -10229,6 +10231,16 @@ if (!gotTheLock) {
     // sees the loading UI within ~1-2 s instead of waiting for the full
     // skill bootstrap (~6-8 s previously).
     setContentSecurityPolicy();
+    // Fully-offline white-label: hard-block any request to LobsterAI/Youdao cloud
+    // hosts at the network layer as a final catch-all. The model gateway runs on a
+    // different host and is unaffected. Covers Electron net.fetch + session fetch +
+    // renderer requests, even if a URL ever bypasses endpoints.ts.
+    if (isCloudServicesDisabled()) {
+      session.defaultSession.webRequest.onBeforeRequest(
+        { urls: ['*://*.youdao.com/*', '*://youdao.com/*'] },
+        (_details, callback) => callback({ cancel: true }),
+      );
+    }
     registerVoiceInputPermissionHandler({
       session: session.defaultSession,
       getMainWindow: () => mainWindow,

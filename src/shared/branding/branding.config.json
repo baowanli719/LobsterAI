@@ -11,5 +11,6 @@
   "showMediaGeneration": false,
   "showImChannels": false,
   "showVoiceInput": false,
+  "disableCloudServices": true,
   "fileName": "GSAIOffice"
 }

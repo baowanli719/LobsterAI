@@ -36,6 +36,9 @@ export interface BrandingConfig {
   showImChannels: boolean;
   /** Show the voice-input (speech-to-text) button in the prompt input. */
   showVoiceInput: boolean;
+  /** Fully offline: short-circuit every LobsterAI/Youdao cloud endpoint so no
+   *  cloud request is ever sent (the model gateway is unaffected). */
+  disableCloudServices: boolean;
 }
 
 const DEFAULTS: BrandingConfig = {
@@ -48,6 +51,7 @@ const DEFAULTS: BrandingConfig = {
   showMediaGeneration: true,
   showImChannels: true,
   showVoiceInput: true,
+  disableCloudServices: false,
 };
 
 type RawBranding = {
@@ -60,6 +64,7 @@ type RawBranding = {
   showMediaGeneration?: unknown;
   showImChannels?: unknown;
   showVoiceInput?: unknown;
+  disableCloudServices?: unknown;
 };
 
 const str = (value: unknown): string | undefined =>
@@ -87,6 +92,9 @@ function resolveBranding(): BrandingConfig {
     showVoiceInput: typeof c.showVoiceInput === 'boolean'
       ? c.showVoiceInput
       : DEFAULTS.showVoiceInput,
+    disableCloudServices: typeof c.disableCloudServices === 'boolean'
+      ? c.disableCloudServices
+      : DEFAULTS.disableCloudServices,
   };
 }
 
