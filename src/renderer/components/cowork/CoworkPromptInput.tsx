@@ -1622,18 +1622,21 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     </div>
   ) : null;
 
-  const renderVoiceInputButton = (buttonClassName: string, iconClassName: string) => (
-    <VoiceInputButton
-      buttonClassName={buttonClassName}
-      iconClassName={iconClassName}
-      isLoggedIn={isLoggedIn}
-      disabled={disabled}
-      isQuotaExhausted={isAsrQuotaExhaustedToday}
-      isRecording={isVoiceRecording}
-      isRecognizing={isVoiceRecognizing}
-      onClick={handleVoiceInputClick}
-    />
-  );
+  const renderVoiceInputButton = (buttonClassName: string, iconClassName: string) => {
+    if (!branding.showVoiceInput) return null;
+    return (
+      <VoiceInputButton
+        buttonClassName={buttonClassName}
+        iconClassName={iconClassName}
+        isLoggedIn={isLoggedIn}
+        disabled={disabled}
+        isQuotaExhausted={isAsrQuotaExhaustedToday}
+        isRecording={isVoiceRecording}
+        isRecognizing={isVoiceRecognizing}
+        onClick={handleVoiceInputClick}
+      />
+    );
+  };
   const hasPromptText = Boolean(value.trim());
   const voiceRecordingUiState = getCoworkVoiceRecordingUiState({
     isLarge,

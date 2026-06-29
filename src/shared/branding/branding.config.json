@@ -10,5 +10,6 @@
   "hideLogin": true,
   "showMediaGeneration": false,
   "showImChannels": false,
+  "showVoiceInput": false,
   "fileName": "GSAIOffice"
 }

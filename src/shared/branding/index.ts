@@ -34,6 +34,8 @@ export interface BrandingConfig {
   showMediaGeneration: boolean;
   /** Show IM bot channels (DingTalk/Feishu/Wecom/QQ/...) and auto-start their gateways. */
   showImChannels: boolean;
+  /** Show the voice-input (speech-to-text) button in the prompt input. */
+  showVoiceInput: boolean;
 }
 
 const DEFAULTS: BrandingConfig = {
@@ -45,6 +47,7 @@ const DEFAULTS: BrandingConfig = {
   hideLogin: false,
   showMediaGeneration: true,
   showImChannels: true,
+  showVoiceInput: true,
 };
 
 type RawBranding = {
@@ -56,6 +59,7 @@ type RawBranding = {
   hideLogin?: unknown;
   showMediaGeneration?: unknown;
   showImChannels?: unknown;
+  showVoiceInput?: unknown;
 };
 
 const str = (value: unknown): string | undefined =>
@@ -80,6 +84,9 @@ function resolveBranding(): BrandingConfig {
     showImChannels: typeof c.showImChannels === 'boolean'
       ? c.showImChannels
       : DEFAULTS.showImChannels,
+    showVoiceInput: typeof c.showVoiceInput === 'boolean'
+      ? c.showVoiceInput
+      : DEFAULTS.showVoiceInput,
   };
 }
 
