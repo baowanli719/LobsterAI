@@ -520,6 +520,13 @@ class ConfigService {
       const storedConfig = await localStore.getItem<AppConfig>(CONFIG_KEYS.APP_CONFIG);
       if (!storedConfig) {
         console.warn('[ConfigService] init: no stored config found, using defaults');
+        // Persist the defaults on first run so the main-process gateway sync sees
+        // the pre-configured default provider/model (defaultModel.config.json).
+        try {
+          await localStore.setItem(CONFIG_KEYS.APP_CONFIG, this.config);
+        } catch (persistError) {
+          console.warn('[ConfigService] init: failed to persist default config:', persistError);
+        }
       }
       if (storedConfig) {
         const previousMigrationVersions = storedConfig.providerModelMigrationVersions;

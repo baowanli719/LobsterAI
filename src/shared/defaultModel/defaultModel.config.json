@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "providerKey": "custom_0",
+  "displayName": "local-ds-v4-flash",
+  "baseUrl": "http://192.168.230.108/higress/v1",
+  "apiKey": "VDSQ2Q8u3EzJQcQKCwMd",
+  "apiFormat": "openai",
+  "modelId": "local-ds-v4-flash",
+  "modelName": "local-ds-v4-flash",
+  "contextWindow": 200000,
+  "supportsImage": false,
+  "setAsDefault": true
+}

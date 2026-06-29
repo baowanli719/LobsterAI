@@ -1,3 +1,4 @@
+import { defaultModelConfig } from '@shared/defaultModel';
 import { type ProviderConfig, ProviderName, ProviderRegistry } from '@shared/providers';
 
 import {
@@ -114,6 +115,25 @@ const buildDefaultProviders = (): AppConfig['providers'] => {
     };
   }
 
+  // White-label: pre-configure a bundled default provider (defaultModel.config.json).
+  if (defaultModelConfig) {
+    providers[defaultModelConfig.providerKey] = {
+      enabled: true,
+      apiKey: defaultModelConfig.apiKey,
+      baseUrl: defaultModelConfig.baseUrl,
+      apiFormat: defaultModelConfig.apiFormat,
+      displayName: defaultModelConfig.displayName,
+      models: [{
+        id: defaultModelConfig.modelId,
+        name: defaultModelConfig.modelName,
+        supportsImage: defaultModelConfig.supportsImage,
+        ...(defaultModelConfig.contextWindow > 0
+          ? { contextWindow: defaultModelConfig.contextWindow }
+          : {}),
+      }],
+    };
+  }
+
   return providers;
 };
 
@@ -123,13 +143,25 @@ export const defaultConfig: AppConfig = {
     key: '',
     baseUrl: 'https://api.deepseek.com',
   },
-  model: {
-    availableModels: [
-      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', supportsImage: false },
-    ],
-    defaultModel: 'deepseek-reasoner',
-    defaultModelProvider: 'deepseek',
-  },
+  model: defaultModelConfig?.setAsDefault
+    ? {
+      availableModels: [
+        {
+          id: defaultModelConfig.modelId,
+          name: defaultModelConfig.modelName,
+          supportsImage: defaultModelConfig.supportsImage,
+        },
+      ],
+      defaultModel: defaultModelConfig.modelId,
+      defaultModelProvider: defaultModelConfig.providerKey,
+    }
+    : {
+      availableModels: [
+        { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', supportsImage: false },
+      ],
+      defaultModel: 'deepseek-reasoner',
+      defaultModelProvider: 'deepseek',
+    },
   providers: buildDefaultProviders(),
   theme: 'system',
   language: 'zh',
