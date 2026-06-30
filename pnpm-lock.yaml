@@ -134,6 +134,9 @@ importers:
       better-sqlite3:
         specifier: ^12.8.0
         version: 12.10.0
+      bindings:
+        specifier: 1.5.0
+        version: 1.5.0
       bufferutil:
         specifier: ^4.1.0
         version: 4.1.0
@@ -158,6 +161,9 @@ importers:
       extract-zip:
         specifier: ^2.0.1
         version: 2.0.1
+      file-uri-to-path:
+        specifier: 1.0.0
+        version: 1.0.0
       form-data:
         specifier: ^4.0.5
         version: 4.0.5
@@ -188,6 +194,9 @@ importers:
       pptx-preview:
         specifier: ^1.0.7
         version: 1.0.7
+      protobufjs:
+        specifier: 7.6.2
+        version: 7.6.2
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@18.3.1)

@@ -30,8 +30,10 @@
 
 ; -- Stop every process that might hold file handles in the install dir --
 ;
-; 1. LobsterAI.exe -- the main app AND the OpenClaw gateway (ELECTRON_RUN_AS_NODE)
-; 2. node.exe whose binary lives inside the LobsterAI install tree
+; 1. The branded app executable -- the main app AND the OpenClaw gateway
+;    (ELECTRON_RUN_AS_NODE). Do not hardcode LobsterAI.exe; white-label builds
+;    use executable names such as GSAIOffice.exe.
+; 2. node.exe whose binary lives inside the install tree
 ;    (Web Search bridge server, MCP servers spawned with detached:true)
 ;
 ; Stop-Process -Force is equivalent to taskkill /F -- the processes have no
@@ -41,15 +43,18 @@
 ;
 ; Shared between the installer and the uninstaller via customCheckAppRunning.
 !macro stopLobsterAIProcesses
-  DetailPrint "[Installer] Stopping running LobsterAI processes"
+  DetailPrint "[Installer] Stopping running app processes"
   System::Call 'kernel32::GetTickCount()i .r7'
   nsExec::ExecToLog 'powershell -NoProfile -NonInteractive -Command "\
-    Stop-Process -Name LobsterAI -Force -ErrorAction SilentlyContinue;\
-    Get-Process node -ErrorAction SilentlyContinue | Where-Object { $$_.Path -like \"*LobsterAI*\" } | Stop-Process -Force -ErrorAction SilentlyContinue;\
+    $$exeBase = [IO.Path]::GetFileNameWithoutExtension(\"${APP_EXECUTABLE_FILENAME}\");\
+    $$processNames = @($$exeBase, \"LobsterAI\") | Where-Object { $$_.Trim() } | Sort-Object -Unique;\
+    $$installRoot = \"$INSTDIR\";\
+    Stop-Process -Name $$processNames -Force -ErrorAction SilentlyContinue;\
+    Get-Process node -ErrorAction SilentlyContinue | Where-Object { $$_.Path -and $$_.Path.StartsWith($$installRoot, [StringComparison]::OrdinalIgnoreCase) } | Stop-Process -Force -ErrorAction SilentlyContinue;\
     for ($$i = 0; $$i -lt 15; $$i++) {\
       $$procs = @();\
-      $$procs += Get-Process -Name LobsterAI -ErrorAction SilentlyContinue;\
-      $$procs += Get-Process node -ErrorAction SilentlyContinue | Where-Object { $$_.Path -like \"*LobsterAI*\" };\
+      $$procs += Get-Process -Name $$processNames -ErrorAction SilentlyContinue;\
+      $$procs += Get-Process node -ErrorAction SilentlyContinue | Where-Object { $$_.Path -and $$_.Path.StartsWith($$installRoot, [StringComparison]::OrdinalIgnoreCase) };\
       if ($$procs.Count -eq 0) { break };\
       Start-Sleep -Milliseconds 500;\
     }"'
