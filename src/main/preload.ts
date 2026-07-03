@@ -464,6 +464,17 @@ contextBridge.exposeInMainWorld('electron', {
     deleteKnowledgeBaseDoc: (input: { id: string; fileName: string }) =>
       ipcRenderer.invoke('cowork:kb:deleteDoc', input),
     pickKnowledgeBaseDocs: () => ipcRenderer.invoke('cowork:kb:pickDocs'),
+    pickKnowledgeBaseFolder: () => ipcRenderer.invoke('cowork:kb:pickFolder'),
+    onKnowledgeBaseImportProgress: (
+      callback: (data: { kbId: string; done: number; total: number; fileName: string }) => void,
+    ) => {
+      const handler = (
+        _event: any,
+        data: { kbId: string; done: number; total: number; fileName: string },
+      ) => callback(data);
+      ipcRenderer.on('cowork:kb:importProgress', handler);
+      return () => ipcRenderer.removeListener('cowork:kb:importProgress', handler);
+    },
     getDreamingStatus: () => ipcRenderer.invoke('cowork:dreaming:status'),
     getDreamDiary: () => ipcRenderer.invoke('cowork:dreaming:diary'),
     readBootstrapFile: (filename: string) => ipcRenderer.invoke('cowork:bootstrap:read', filename),

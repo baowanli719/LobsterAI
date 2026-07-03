@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, test } from 'vitest';
 
 import { extractDocxXmlText } from './knowledgeBaseImportConverters';
 import {
+  collectImportFiles,
   createKnowledgeBase,
   deleteDoc,
   deleteKnowledgeBase,
@@ -141,6 +142,49 @@ test('importDocs reports unsupported, oversized and unreadable files without abo
   expect(results[2]).toMatchObject({ success: false, errorCode: 'readFailed' });
   expect(results[3].success).toBe(true);
   expect(listDocs(root, kb.id).length).toBe(1);
+});
+
+// ==================== folder import ====================
+
+test('collectImportFiles walks folders, keeps supported + .doc, skips others and hidden entries', () => {
+  const folder = path.join(stateDir, 'import-src');
+  fs.mkdirSync(path.join(folder, 'nested'), { recursive: true });
+  fs.mkdirSync(path.join(folder, '.hidden-dir'), { recursive: true });
+  fs.writeFileSync(path.join(folder, 'a.md'), 'a', 'utf8');
+  fs.writeFileSync(path.join(folder, 'b.png'), 'img', 'utf8');
+  fs.writeFileSync(path.join(folder, 'legacy.doc'), 'doc', 'utf8');
+  fs.writeFileSync(path.join(folder, '.hidden.md'), 'h', 'utf8');
+  fs.writeFileSync(path.join(folder, '.hidden-dir', 'c.md'), 'c', 'utf8');
+  fs.writeFileSync(path.join(folder, 'nested', 'd.txt'), 'd', 'utf8');
+  const explicitUnsupported = writeSourceFile('direct.exe', 'x');
+
+  const candidates = collectImportFiles([folder, explicitUnsupported]);
+  const names = candidates.files.map(f => path.basename(f)).sort();
+  // Folder scan keeps supported + .doc; explicit files are always kept.
+  expect(names).toEqual(['a.md', 'd.txt', 'direct.exe', 'legacy.doc']);
+  expect(candidates.skipped).toBe(1); // b.png
+  expect(candidates.truncated).toBe(false);
+});
+
+test('collectImportFiles keeps nonexistent explicit paths for downstream error reporting', () => {
+  const missing = path.join(stateDir, 'missing.md');
+  const candidates = collectImportFiles([missing]);
+  expect(candidates.files).toEqual([missing]);
+});
+
+test('importDocs reports progress per file', async () => {
+  const kb = createKnowledgeBase(root, 'docs');
+  const a = writeSourceFile('p1.md', 'one');
+  const b = writeSourceFile('p2.md', 'two');
+
+  const events: Array<{ done: number; total: number; name: string }> = [];
+  await importDocs(root, kb.id, [a, b], (done, total, sourcePath) => {
+    events.push({ done, total, name: path.basename(sourcePath) });
+  });
+  expect(events).toEqual([
+    { done: 0, total: 2, name: 'p1.md' },
+    { done: 1, total: 2, name: 'p2.md' },
+  ]);
 });
 
 // ==================== rich-format conversion ====================

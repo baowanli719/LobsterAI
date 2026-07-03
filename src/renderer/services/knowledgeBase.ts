@@ -1,6 +1,7 @@
 import type {
   KnowledgeBaseDoc,
-  KnowledgeBaseImportResult,
+  KnowledgeBaseImportBatch,
+  KnowledgeBaseImportProgressEvent,
   KnowledgeBaseSummary,
 } from '../types/knowledgeBase';
 
@@ -44,12 +45,16 @@ class KnowledgeBaseService {
     return result.docs;
   }
 
-  async importDocs(id: string, filePaths: string[]): Promise<KnowledgeBaseImportResult[]> {
+  async importDocs(id: string, filePaths: string[]): Promise<KnowledgeBaseImportBatch> {
     const api = window.electron?.cowork?.importKnowledgeBaseDocs;
-    if (!api) return [];
+    if (!api) return { results: [], skipped: 0, truncated: false };
     const result = await api({ id, filePaths });
-    if (!result?.success || !result.results) return [];
-    return result.results;
+    if (!result?.success || !result.results) return { results: [], skipped: 0, truncated: false };
+    return {
+      results: result.results,
+      skipped: result.skipped ?? 0,
+      truncated: result.truncated ?? false,
+    };
   }
 
   async readDoc(id: string, fileName: string): Promise<string | null> {
@@ -74,6 +79,22 @@ class KnowledgeBaseService {
     const result = await api();
     if (!result?.success || !result.filePaths) return [];
     return result.filePaths;
+  }
+
+  /** Open the native folder picker; returns [] when cancelled or unavailable. */
+  async pickFolder(): Promise<string[]> {
+    const api = window.electron?.cowork?.pickKnowledgeBaseFolder;
+    if (!api) return [];
+    const result = await api();
+    if (!result?.success || !result.folderPaths) return [];
+    return result.folderPaths;
+  }
+
+  /** Subscribe to import progress events; returns an unsubscribe function. */
+  onImportProgress(callback: (event: KnowledgeBaseImportProgressEvent) => void): () => void {
+    const api = window.electron?.cowork?.onKnowledgeBaseImportProgress;
+    if (!api) return () => undefined;
+    return api(callback);
   }
 }
 

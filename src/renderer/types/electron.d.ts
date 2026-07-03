@@ -811,6 +811,8 @@ interface IElectronAPI {
     importKnowledgeBaseDocs: (input: { id: string; filePaths: string[] }) => Promise<{
       success: boolean;
       results?: import('./knowledgeBase').KnowledgeBaseImportResult[];
+      skipped?: number;
+      truncated?: boolean;
       error?: string;
     }>;
     readKnowledgeBaseDoc: (input: { id: string; fileName: string }) => Promise<{
@@ -827,6 +829,14 @@ interface IElectronAPI {
       filePaths?: string[];
       error?: string;
     }>;
+    pickKnowledgeBaseFolder: () => Promise<{
+      success: boolean;
+      folderPaths?: string[];
+      error?: string;
+    }>;
+    onKnowledgeBaseImportProgress: (
+      callback: (data: { kbId: string; done: number; total: number; fileName: string }) => void,
+    ) => () => void;
     readBootstrapFile: (
       filename: string,
     ) => Promise<{ success: boolean; content: string; error?: string }>;

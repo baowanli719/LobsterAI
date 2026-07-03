@@ -22,3 +22,18 @@ export interface KnowledgeBaseImportResult {
   fileName?: string;
   errorCode?: KnowledgeBaseImportErrorCode;
 }
+
+export interface KnowledgeBaseImportBatch {
+  results: KnowledgeBaseImportResult[];
+  /** Files inside imported folders skipped as unsupported formats. */
+  skipped: number;
+  /** True when the per-batch file cap stopped folder expansion early. */
+  truncated: boolean;
+}
+
+export interface KnowledgeBaseImportProgressEvent {
+  kbId: string;
+  done: number;
+  total: number;
+  fileName: string;
+}

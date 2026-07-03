@@ -224,6 +224,7 @@ import {
 import { packageHtmlFile } from './libs/htmlShare/htmlSharePackager';
 import { getKeyfromAttribution, initializeKeyfromAttribution } from './libs/keyfromAttribution';
 import {
+  collectImportFiles as collectKnowledgeBaseImportFiles,
   createKnowledgeBase,
   deleteDoc as deleteKnowledgeBaseDoc,
   deleteKnowledgeBase,
@@ -6997,10 +6998,29 @@ if (!gotTheLock) {
       return kbError(error, 'Failed to list knowledge base documents');
     }
   });
-  ipcMain.handle('cowork:kb:importDocs', async (_event, input: { id: string; filePaths: string[] }) => {
+  ipcMain.handle('cowork:kb:importDocs', async (event, input: { id: string; filePaths: string[] }) => {
     try {
-      const filePaths = Array.isArray(input.filePaths) ? input.filePaths : [];
-      return { success: true, results: await importKnowledgeBaseDocs(getKbRoot(), input.id, filePaths) };
+      const inputPaths = Array.isArray(input.filePaths) ? input.filePaths : [];
+      // Expand folders into their supported files (recursively).
+      const candidates = collectKnowledgeBaseImportFiles(inputPaths);
+      const results = await importKnowledgeBaseDocs(
+        getKbRoot(),
+        input.id,
+        candidates.files,
+        (done, total, sourcePath) => {
+          try {
+            event.sender.send('cowork:kb:importProgress', {
+              kbId: input.id,
+              done,
+              total,
+              fileName: path.basename(sourcePath),
+            });
+          } catch {
+            // Renderer may be gone mid-import; progress is best-effort.
+          }
+        },
+      );
+      return { success: true, results, skipped: candidates.skipped, truncated: candidates.truncated };
     } catch (error) {
       return kbError(error, 'Failed to import documents');
     }
@@ -7030,6 +7050,17 @@ if (!gotTheLock) {
       return { success: true, filePaths: result.canceled ? [] : result.filePaths };
     } catch (error) {
       return kbError(error, 'Failed to open file picker');
+    }
+  });
+  ipcMain.handle('cowork:kb:pickFolder', async () => {
+    try {
+      const window = BrowserWindow.getFocusedWindow() ?? undefined;
+      const result = await dialog.showOpenDialog(window as BrowserWindow, {
+        properties: ['openDirectory'],
+      });
+      return { success: true, folderPaths: result.canceled ? [] : result.filePaths };
+    } catch (error) {
+      return kbError(error, 'Failed to open folder picker');
     }
   });
   // ── Dreaming content display ──────────────────────────────────────────

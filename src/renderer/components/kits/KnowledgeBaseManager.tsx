@@ -3,6 +3,7 @@ import {
   ArrowUpTrayIcon,
   DocumentTextIcon,
   EyeIcon,
+  FolderArrowDownIcon,
   InformationCircleIcon,
   PencilIcon,
   PlusIcon,
@@ -17,7 +18,7 @@ import { knowledgeBaseService } from '../../services/knowledgeBase';
 import { RootState } from '../../store';
 import { selectCoworkConfig } from '../../store/selectors/coworkSelectors';
 import { setKnowledgeBases } from '../../store/slices/knowledgeBaseSlice';
-import type { KnowledgeBaseDoc, KnowledgeBaseImportResult } from '../../types/knowledgeBase';
+import type { KnowledgeBaseDoc, KnowledgeBaseImportBatch, KnowledgeBaseImportResult } from '../../types/knowledgeBase';
 import Modal from '../common/Modal';
 
 interface KnowledgeBaseManagerProps {
@@ -72,6 +73,8 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({ onBack }) =
   const [nameDraft, setNameDraft] = useState('');
   const [kbPendingDelete, setKbPendingDelete] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ fileName: string; content: string } | null>(null);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number; fileName: string } | null>(null);
+  const [importSummary, setImportSummary] = useState<KnowledgeBaseImportBatch | null>(null);
 
   const selectedKb = useMemo(
     () => knowledgeBases.find(kb => kb.id === selectedKbId) ?? null,
@@ -138,22 +141,29 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({ onBack }) =
 
   const importFiles = useCallback(async (filePaths: string[]) => {
     if (!selectedKbId || filePaths.length === 0) return;
+    const kbId = selectedKbId;
     setIsImporting(true);
-    try {
-      const results = await knowledgeBaseService.importDocs(selectedKbId, filePaths);
-      const failed = results.filter(r => !r.success);
-      if (failed.length > 0) {
-        const detail = failed
-          .slice(0, 3)
-          .map(r => `${r.sourcePath.split(/[\\/]/).pop()}: ${importErrorMessage(r)}`)
-          .join('; ');
-        showToast(
-          `${i18nService.t('kbImportFailedSummary').replace('{count}', String(failed.length))} ${detail}`,
-        );
+    setImportProgress(null);
+    const unsubscribe = knowledgeBaseService.onImportProgress(event => {
+      if (event.kbId === kbId) {
+        setImportProgress({ done: event.done, total: event.total, fileName: event.fileName });
       }
-      await refreshDocs(selectedKbId);
+    });
+    try {
+      const batch = await knowledgeBaseService.importDocs(kbId, filePaths);
+      const failed = batch.results.filter(r => !r.success);
+      if (failed.length === 0 && batch.skipped === 0 && !batch.truncated) {
+        showToast(
+          i18nService.t('kbImportAllSuccess').replace('{count}', String(batch.results.length)),
+        );
+      } else {
+        setImportSummary(batch);
+      }
+      await refreshDocs(kbId);
       await refreshKnowledgeBases();
     } finally {
+      unsubscribe();
+      setImportProgress(null);
       setIsImporting(false);
     }
   }, [selectedKbId, refreshDocs, refreshKnowledgeBases]);
@@ -161,6 +171,11 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({ onBack }) =
   const handlePickAndImport = async () => {
     const filePaths = await knowledgeBaseService.pickDocs();
     await importFiles(filePaths);
+  };
+
+  const handlePickFolderAndImport = async () => {
+    const folderPaths = await knowledgeBaseService.pickFolder();
+    await importFiles(folderPaths);
   };
 
   const handleDrop = async (event: React.DragEvent) => {
@@ -289,17 +304,51 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({ onBack }) =
               <>
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-foreground">{selectedKb.name}</h3>
-                  <button
-                    type="button"
-                    disabled={isImporting}
-                    onClick={handlePickAndImport}
-                    className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-surface-raised disabled:opacity-50"
-                  >
-                    <ArrowUpTrayIcon className="h-3 w-3" />
-                    {isImporting ? i18nService.t('kbImporting') : i18nService.t('kbImportDocs')}
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={isImporting}
+                      onClick={handlePickAndImport}
+                      className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-surface-raised disabled:opacity-50"
+                    >
+                      <ArrowUpTrayIcon className="h-3 w-3" />
+                      {isImporting ? i18nService.t('kbImporting') : i18nService.t('kbImportDocs')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isImporting}
+                      onClick={handlePickFolderAndImport}
+                      className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-surface-raised disabled:opacity-50"
+                    >
+                      <FolderArrowDownIcon className="h-3 w-3" />
+                      {i18nService.t('kbImportFolder')}
+                    </button>
+                  </div>
                 </div>
                 <p className="mt-1 text-[11px] text-secondary">{i18nService.t('kbDropHint')}</p>
+
+                {/* Import progress */}
+                {isImporting && importProgress && importProgress.total > 0 && (
+                  <div className="mt-3 rounded-lg border border-border bg-surface-raised px-3 py-2">
+                    <div className="flex items-center justify-between text-[11px] text-secondary">
+                      <span className="min-w-0 truncate pr-3">
+                        {i18nService.t('kbImportProgress')
+                          .replace('{done}', String(Math.min(importProgress.done + 1, importProgress.total)))
+                          .replace('{total}', String(importProgress.total))
+                          .replace('{fileName}', importProgress.fileName)}
+                      </span>
+                      <span className="flex-shrink-0">
+                        {Math.round((importProgress.done / importProgress.total) * 100)}%
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border">
+                      <div
+                        className="h-full rounded-full bg-primary transition-[width] duration-200"
+                        style={{ width: `${(importProgress.done / importProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {docsLoading ? (
                   <div className="py-12 text-center text-sm text-secondary">{i18nService.t('kitLoading')}</div>
@@ -415,6 +464,65 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({ onBack }) =
               className="px-3 py-1.5 text-xs rounded-lg bg-red-500 text-white hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-400 transition-colors"
             >
               {i18nService.t('confirmDelete')}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Import result summary modal */}
+      {importSummary && (
+        <Modal
+          onClose={() => setImportSummary(null)}
+          overlayClassName="fixed inset-0 z-[9999] flex items-center justify-center modal-backdrop px-4"
+          className="modal-content flex max-h-[70vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-modal"
+        >
+          <div className="border-b border-border px-5 py-3">
+            <div className="text-base font-semibold text-foreground">{i18nService.t('kbImportResultTitle')}</div>
+            <p className="mt-1 text-sm text-secondary">
+              {i18nService.t('kbImportResultSummary')
+                .replace('{success}', String(importSummary.results.filter(r => r.success).length))
+                .replace('{failed}', String(importSummary.results.filter(r => !r.success).length))}
+            </p>
+            {importSummary.skipped > 0 && (
+              <p className="mt-0.5 text-[12px] text-secondary">
+                {i18nService.t('kbImportResultSkipped').replace('{count}', String(importSummary.skipped))}
+              </p>
+            )}
+            {importSummary.truncated && (
+              <p className="mt-0.5 text-[12px] text-amber-700 dark:text-amber-300">
+                {i18nService.t('kbImportResultTruncated')}
+              </p>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-3">
+            {importSummary.results.filter(r => !r.success).map((r, idx) => (
+              <div key={`fail-${idx}`} className="flex items-start justify-between gap-3 border-b border-border/50 py-1.5 last:border-b-0">
+                <span className="min-w-0 truncate text-[12px] text-foreground">
+                  {r.sourcePath.split(/[\\/]/).pop()}
+                </span>
+                <span className="flex-shrink-0 text-[12px] text-red-500 dark:text-red-400">
+                  {importErrorMessage(r)}
+                </span>
+              </div>
+            ))}
+            {importSummary.results.filter(r => r.success).map((r, idx) => (
+              <div key={`ok-${idx}`} className="flex items-start justify-between gap-3 border-b border-border/50 py-1.5 last:border-b-0">
+                <span className="min-w-0 truncate text-[12px] text-secondary">
+                  {r.sourcePath.split(/[\\/]/).pop()}
+                </span>
+                <span className="flex-shrink-0 text-[12px] text-green-600 dark:text-green-400">
+                  {i18nService.t('kbImportResultOk')}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-end border-t border-border px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setImportSummary(null)}
+              className="px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
+            >
+              {i18nService.t('confirm')}
             </button>
           </div>
         </Modal>
