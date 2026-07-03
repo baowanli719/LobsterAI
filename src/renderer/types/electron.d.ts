@@ -787,6 +787,46 @@ interface IElectronAPI {
     }) => Promise<{ success: boolean; entry?: CoworkUserMemoryEntry; error?: string }>;
     deleteMemoryEntry: (input: { id: string }) => Promise<{ success: boolean; error?: string }>;
     getMemoryStats: () => Promise<{ success: boolean; stats?: CoworkMemoryStats; error?: string }>;
+    listKnowledgeBases: () => Promise<{
+      success: boolean;
+      knowledgeBases?: import('./knowledgeBase').KnowledgeBaseSummary[];
+      error?: string;
+    }>;
+    createKnowledgeBase: (input: { name: string }) => Promise<{
+      success: boolean;
+      knowledgeBase?: import('./knowledgeBase').KnowledgeBaseSummary;
+      error?: string;
+    }>;
+    renameKnowledgeBase: (input: { id: string; name: string }) => Promise<{
+      success: boolean;
+      knowledgeBase?: import('./knowledgeBase').KnowledgeBaseSummary;
+      error?: string;
+    }>;
+    deleteKnowledgeBase: (input: { id: string }) => Promise<{ success: boolean; error?: string }>;
+    listKnowledgeBaseDocs: (input: { id: string }) => Promise<{
+      success: boolean;
+      docs?: import('./knowledgeBase').KnowledgeBaseDoc[];
+      error?: string;
+    }>;
+    importKnowledgeBaseDocs: (input: { id: string; filePaths: string[] }) => Promise<{
+      success: boolean;
+      results?: import('./knowledgeBase').KnowledgeBaseImportResult[];
+      error?: string;
+    }>;
+    readKnowledgeBaseDoc: (input: { id: string; fileName: string }) => Promise<{
+      success: boolean;
+      content?: string;
+      error?: string;
+    }>;
+    deleteKnowledgeBaseDoc: (input: { id: string; fileName: string }) => Promise<{
+      success: boolean;
+      error?: string;
+    }>;
+    pickKnowledgeBaseDocs: () => Promise<{
+      success: boolean;
+      filePaths?: string[];
+      error?: string;
+    }>;
     readBootstrapFile: (
       filename: string,
     ) => Promise<{ success: boolean; content: string; error?: string }>;

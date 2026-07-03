@@ -35,6 +35,7 @@ import {
   getCoworkOpenAICompatProxyBaseURL,
   getCoworkOpenAICompatProxyToken,
 } from './coworkOpenAICompatProxy';
+import { getKnowledgeBasesRoot } from './knowledgeBaseManager';
 import { readOpenAICodexAuthFile } from './openaiCodexAuth';
 import {
   buildAgentEntry,
@@ -1537,9 +1538,22 @@ loopDetection: MANAGED_TOOL_LOOP_DETECTION,
           },
           workspace: path.resolve(mainWorkspacePath),
           ...(taskWorkingDirectory ? { cwd: path.resolve(taskWorkingDirectory) } : {}),
-          ...(coworkConfig.embeddingEnabled ? {
-            memorySearch: {
-              enabled: true,
+          // Memory search is always on. Without an embedding provider,
+          // memory-core runs in FTS-only mode (BM25 keyword search) — no
+          // external service needed. Enabling embedding upgrades retrieval
+          // to hybrid vector + keyword search.
+          memorySearch: {
+            enabled: true,
+            // Index user knowledge bases. The root path is fixed, so adding
+            // or removing knowledge bases/documents never changes this config.
+            extraPaths: [getKnowledgeBasesRoot(this.engineManager.getStateDir())],
+            store: {
+              // Use trigram tokenizer for FTS5 — unicode61 (the openclaw default)
+              // cannot tokenize CJK characters, so Chinese/Japanese/Korean memory
+              // content is invisible to keyword search.
+              fts: { tokenizer: 'trigram' },
+            },
+            ...(coworkConfig.embeddingEnabled ? {
               provider: (['openai', 'gemini', 'voyage', 'mistral', 'ollama'].includes(coworkConfig.embeddingProvider)
                 ? coworkConfig.embeddingProvider
                 : 'openai'),
@@ -1548,19 +1562,13 @@ loopDetection: MANAGED_TOOL_LOOP_DETECTION,
                 ...(coworkConfig.embeddingRemoteBaseUrl ? { baseUrl: coworkConfig.embeddingRemoteBaseUrl } : {}),
                 ...(coworkConfig.embeddingRemoteApiKey ? { apiKey: coworkConfig.embeddingRemoteApiKey } : {}),
               },
-              store: {
-                // Use trigram tokenizer for FTS5 — unicode61 (the openclaw default)
-                // cannot tokenize CJK characters, so Chinese/Japanese/Korean memory
-                // content is invisible to keyword search.
-                fts: { tokenizer: 'trigram' },
-              },
               query: {
                 hybrid: {
                   vectorWeight: coworkConfig.embeddingVectorWeight ?? 0.7,
                 },
               },
-            },
-          } : {}),
+            } : {}),
+          },
           heartbeat: {
             every: '1h',
             target: 'none',

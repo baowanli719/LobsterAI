@@ -58,7 +58,7 @@ import PromptAddIcon from '../icons/PromptAddIcon';
 import SkillIcon from '../icons/SkillIcon';
 import TaskPauseIcon from '../icons/TaskPauseIcon';
 import XMarkIcon from '../icons/XMarkIcon';
-import { ActiveKitBadge, KitsButton } from '../kits';
+import { ActiveKitBadge, ActiveKnowledgeBaseBadge, KitsButton } from '../kits';
 import ModelSelector, {
   ModelAccessPromptKind,
   ModelAccessPromptModal,
@@ -82,6 +82,7 @@ import {
 } from './mediaMentionUtils';
 import MediaModelPicker from './MediaModelPicker';
 import { buildSelectedKitContextPrompt } from './selectedKitContextPrompt';
+import { buildSelectedKnowledgeBaseContextPrompt } from './selectedKnowledgeBaseContextPrompt';
 import { buildSelectedSkillRoutingPrompt } from './selectedSkillRoutingPrompt';
 import SelectedTextSnippetBadge from './SelectedTextSnippetBadge';
 import { usePersistAgentModelSelection } from './usePersistAgentModelSelection';
@@ -425,6 +426,8 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
   const installedKits = useSelector((state: RootState) => state.kit.installedKits);
   const marketplaceKits = useSelector((state: RootState) => state.kit.marketplaceKits);
   const hasActiveKits = activeKitIds.length > 0;
+  const activeKbIds = useSelector((state: RootState) => state.knowledgeBase.activeKbIds);
+  const knowledgeBases = useSelector((state: RootState) => state.knowledgeBase.knowledgeBases);
   const draftKitIdsForKey = useSelector((state: RootState) => state.cowork.draftKitIds[draftKey]);
   const draftSkillIdsForKey = useSelector((state: RootState) => state.cowork.draftSkillIds[draftKey]);
   const currentAgent = agents.find((agent) => agent.id === currentAgentId);
@@ -451,7 +454,8 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
   const isLarge = size === 'large' || isCompact;
   const useHomeContextLayout = isLarge && showAgentSelector;
   const useCompactSendButton = isLarge && (useHomeContextLayout || showReadOnlyContext || isCompact);
-  const hasActiveContext = hasActiveSkills || hasActiveKits;
+  const hasActiveKnowledgeBases = activeKbIds.some(id => knowledgeBases.some(kb => kb.id === id));
+  const hasActiveContext = hasActiveSkills || hasActiveKits || hasActiveKnowledgeBases;
   const hasAttachments = attachments.length > 0;
   const minHeight = isCompact
     ? hasAttachments ? 30 : hasActiveContext ? 30 : 28
@@ -823,8 +827,10 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
       .map(id => skills.find(s => s.id === id))
       .filter((s): s is Skill => s !== undefined);
     const kitPrompt = buildSelectedKitContextPrompt(activeKitIds, marketplaceKits, installedKits);
+    const kbPrompt = buildSelectedKnowledgeBaseContextPrompt(activeKbIds, knowledgeBases);
     const skillPrompt = [
       kitPrompt,
+      kbPrompt,
       buildSelectedSkillRoutingPrompt(activeSkills),
     ].filter(Boolean).join('\n\n') || undefined;
 
@@ -958,7 +964,7 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     dispatch(clearDraftAttachments(draftKey));
     dispatch(clearDraftSelectedTextSnippets(draftKey));
     setImageVisionHint(false);
-  }, [value, isVoiceRecording, stopVoiceRecordingAndRecognize, isStreaming, disabled, isPatchingModel, onSubmit, activeSkillIds, skills, activeKitIds, marketplaceKits, installedKits, attachments, showFolderSelector, workingDirectory, dispatch, draftKey, effectiveSelectedModel?.id, modelSupportsImage, mediaLabels, selectedTextSnippets, resolveSubmitModelAccessPrompt]);
+  }, [value, isVoiceRecording, stopVoiceRecordingAndRecognize, isStreaming, disabled, isPatchingModel, onSubmit, activeSkillIds, skills, activeKitIds, marketplaceKits, installedKits, activeKbIds, knowledgeBases, attachments, showFolderSelector, workingDirectory, dispatch, draftKey, effectiveSelectedModel?.id, modelSupportsImage, mediaLabels, selectedTextSnippets, resolveSubmitModelAccessPrompt]);
 
   const handleSelectSkill = useCallback((skill: Skill) => {
     dispatch(toggleActiveSkill(skill.id));
@@ -1739,6 +1745,7 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     >
       <ActiveSkillBadge />
       <ActiveKitBadge />
+      <ActiveKnowledgeBaseBadge />
     </div>
   ) : null;
   const textareaPlaceholder = placeholder;

@@ -18,6 +18,7 @@ import CoworkPermissionModal from './components/cowork/CoworkPermissionModal';
 import CoworkQuestionWizard from './components/cowork/CoworkQuestionWizard';
 import EngineStartupOverlay from './components/cowork/EngineStartupOverlay';
 import KitsView from './components/kits/KitsView';
+import KnowledgeBaseView from './components/kits/KnowledgeBaseView';
 import { McpView } from './components/mcp';
 import PrivacyDialog from './components/PrivacyDialog';
 import { ScheduledTasksView } from './components/scheduledTasks';
@@ -96,7 +97,7 @@ const INIT_STEP_TIMEOUT_MS_DEFAULT = 16_000;
 const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsOptions, setSettingsOptions] = useState<SettingsOpenOptions & { requestId: number }>({ requestId: 0 });
-  const [mainView, setMainView] = useState<'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'mcp'>('cowork');
+  const [mainView, setMainView] = useState<'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'knowledgeBase' | 'mcp'>('cowork');
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -343,6 +344,10 @@ const App: React.FC = () => {
 
   const handleShowKits = useCallback(() => {
     setMainView('kits');
+  }, []);
+
+  const handleShowKnowledgeBase = useCallback(() => {
+    setMainView('knowledgeBase');
   }, []);
 
   const handleKitTryAsking = useCallback((text: string, kitId: string) => {
@@ -985,6 +990,7 @@ const App: React.FC = () => {
           onShowCowork={handleShowCowork}
           onShowScheduledTasks={handleShowScheduledTasks}
           onShowKits={handleShowKits}
+          onShowKnowledgeBase={handleShowKnowledgeBase}
           onShowMcp={handleShowMcp}
           onNewChat={handleNewChat}
           isCollapsed={isSidebarCollapsed}
@@ -1018,6 +1024,13 @@ const App: React.FC = () => {
                 onNewChat={handleNewChat}
                 updateBadge={isSidebarCollapsed ? updateBadge : null}
                 onTryAsking={handleKitTryAsking}
+              />
+            ) : mainView === 'knowledgeBase' ? (
+              <KnowledgeBaseView
+                isSidebarCollapsed={isSidebarCollapsed}
+                onToggleSidebar={handleToggleSidebar}
+                onNewChat={handleNewChat}
+                updateBadge={isSidebarCollapsed ? updateBadge : null}
               />
             ) : mainView === 'mcp' ? (
               <McpView

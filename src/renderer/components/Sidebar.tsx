@@ -1,4 +1,4 @@
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { AgentId } from '@shared/agent';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -37,11 +37,12 @@ import LoginButton from './LoginButton';
 interface SidebarProps {
   onShowSettings: () => void;
   onShowLogin?: () => void;
-  activeView: 'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'mcp';
+  activeView: 'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'knowledgeBase' | 'mcp';
   onShowSkills: () => void;
   onShowCowork: () => void;
   onShowScheduledTasks: () => void;
   onShowKits: () => void;
+  onShowKnowledgeBase: () => void;
   onShowMcp: () => void;
   onNewChat: () => void;
   isCollapsed: boolean;
@@ -73,6 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onShowCowork,
   onShowScheduledTasks,
   onShowKits,
+  onShowKnowledgeBase,
   onShowMcp,
   onNewChat,
   isCollapsed,
@@ -437,6 +439,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {i18nService.t('newFeatureBadge')}
               </span>
             )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchOpen(false);
+              onShowKnowledgeBase();
+            }}
+            className={activeView === 'knowledgeBase' ? activeSidebarNavItemClassName : sidebarNavItemClassName}
+            aria-current={activeView === 'knowledgeBase' ? 'page' : undefined}
+          >
+            <BookOpenIcon className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 truncate">{i18nService.t('knowledgeBase')}</span>
           </button>
           <button
             type="button"

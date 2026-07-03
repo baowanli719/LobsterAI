@@ -451,6 +451,19 @@ contextBridge.exposeInMainWorld('electron', {
     deleteMemoryEntry: (input: { id: string }) =>
       ipcRenderer.invoke('cowork:memory:deleteEntry', input),
     getMemoryStats: () => ipcRenderer.invoke('cowork:memory:getStats'),
+    listKnowledgeBases: () => ipcRenderer.invoke('cowork:kb:list'),
+    createKnowledgeBase: (input: { name: string }) => ipcRenderer.invoke('cowork:kb:create', input),
+    renameKnowledgeBase: (input: { id: string; name: string }) =>
+      ipcRenderer.invoke('cowork:kb:rename', input),
+    deleteKnowledgeBase: (input: { id: string }) => ipcRenderer.invoke('cowork:kb:delete', input),
+    listKnowledgeBaseDocs: (input: { id: string }) => ipcRenderer.invoke('cowork:kb:listDocs', input),
+    importKnowledgeBaseDocs: (input: { id: string; filePaths: string[] }) =>
+      ipcRenderer.invoke('cowork:kb:importDocs', input),
+    readKnowledgeBaseDoc: (input: { id: string; fileName: string }) =>
+      ipcRenderer.invoke('cowork:kb:readDoc', input),
+    deleteKnowledgeBaseDoc: (input: { id: string; fileName: string }) =>
+      ipcRenderer.invoke('cowork:kb:deleteDoc', input),
+    pickKnowledgeBaseDocs: () => ipcRenderer.invoke('cowork:kb:pickDocs'),
     getDreamingStatus: () => ipcRenderer.invoke('cowork:dreaming:status'),
     getDreamDiary: () => ipcRenderer.invoke('cowork:dreaming:diary'),
     readBootstrapFile: (filename: string) => ipcRenderer.invoke('cowork:bootstrap:read', filename),

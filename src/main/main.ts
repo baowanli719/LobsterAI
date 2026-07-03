@@ -223,6 +223,17 @@ import {
 } from './libs/htmlShare/htmlShareClient';
 import { packageHtmlFile } from './libs/htmlShare/htmlSharePackager';
 import { getKeyfromAttribution, initializeKeyfromAttribution } from './libs/keyfromAttribution';
+import {
+  createKnowledgeBase,
+  deleteDoc as deleteKnowledgeBaseDoc,
+  deleteKnowledgeBase,
+  ensureKnowledgeBasesRoot,
+  importDocs as importKnowledgeBaseDocs,
+  listDocs as listKnowledgeBaseDocs,
+  listKnowledgeBases,
+  readDoc as readKnowledgeBaseDoc,
+  renameKnowledgeBase,
+} from './libs/knowledgeBaseManager';
 import { exportLogsZip } from './libs/logExport';
 import { inferImageMimeTypeFromDataUrl, type PersistedGeneratedImageAsset, persistGeneratedImageAssets, type PersistGeneratedImageAssetsResult, persistGeneratedVideoAssets, type RemoteGeneratedMediaAsset } from './libs/mediaAssetPersistence';
 import { migrateAgentModelRefs, parsePrimaryModelRef, resolveQualifiedAgentModelRef } from './libs/openclawAgentModels';
@@ -1533,6 +1544,14 @@ const bootstrapOpenClawEngine = async (
         ensureDefaultIdentity(getMainAgentWorkspacePath(manager.getStateDir()));
       } catch (err) {
         console.warn('[OpenClaw] bootstrap: ensureDefaultIdentity failed (non-fatal):', err);
+      }
+
+      // Ensure the knowledge-bases root exists before config sync writes it
+      // into memorySearch.extraPaths.
+      try {
+        ensureKnowledgeBasesRoot(manager.getStateDir());
+      } catch (err) {
+        console.warn('[OpenClaw] bootstrap: ensureKnowledgeBasesRoot failed (non-fatal):', err);
       }
 
       const syncResult = await syncOpenClawConfig({
@@ -6933,6 +6952,84 @@ if (!gotTheLock) {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get memory stats',
       };
+    }
+  });
+  // ── Knowledge bases ───────────────────────────────────────────────────
+  const getKbRoot = () => ensureKnowledgeBasesRoot(getOpenClawEngineManager().getStateDir());
+  const kbError = (error: unknown, fallback: string) => ({
+    success: false as const,
+    error: error instanceof Error ? error.message : fallback,
+  });
+
+  ipcMain.handle('cowork:kb:list', async () => {
+    try {
+      return { success: true, knowledgeBases: listKnowledgeBases(getKbRoot()) };
+    } catch (error) {
+      return kbError(error, 'Failed to list knowledge bases');
+    }
+  });
+  ipcMain.handle('cowork:kb:create', async (_event, input: { name: string }) => {
+    try {
+      return { success: true, knowledgeBase: createKnowledgeBase(getKbRoot(), input.name) };
+    } catch (error) {
+      return kbError(error, 'Failed to create knowledge base');
+    }
+  });
+  ipcMain.handle('cowork:kb:rename', async (_event, input: { id: string; name: string }) => {
+    try {
+      return { success: true, knowledgeBase: renameKnowledgeBase(getKbRoot(), input.id, input.name) };
+    } catch (error) {
+      return kbError(error, 'Failed to rename knowledge base');
+    }
+  });
+  ipcMain.handle('cowork:kb:delete', async (_event, input: { id: string }) => {
+    try {
+      const deleted = deleteKnowledgeBase(getKbRoot(), input.id);
+      return deleted ? { success: true } : { success: false, error: 'Knowledge base not found' };
+    } catch (error) {
+      return kbError(error, 'Failed to delete knowledge base');
+    }
+  });
+  ipcMain.handle('cowork:kb:listDocs', async (_event, input: { id: string }) => {
+    try {
+      return { success: true, docs: listKnowledgeBaseDocs(getKbRoot(), input.id) };
+    } catch (error) {
+      return kbError(error, 'Failed to list knowledge base documents');
+    }
+  });
+  ipcMain.handle('cowork:kb:importDocs', async (_event, input: { id: string; filePaths: string[] }) => {
+    try {
+      const filePaths = Array.isArray(input.filePaths) ? input.filePaths : [];
+      return { success: true, results: await importKnowledgeBaseDocs(getKbRoot(), input.id, filePaths) };
+    } catch (error) {
+      return kbError(error, 'Failed to import documents');
+    }
+  });
+  ipcMain.handle('cowork:kb:readDoc', async (_event, input: { id: string; fileName: string }) => {
+    try {
+      return { success: true, content: readKnowledgeBaseDoc(getKbRoot(), input.id, input.fileName) };
+    } catch (error) {
+      return kbError(error, 'Failed to read document');
+    }
+  });
+  ipcMain.handle('cowork:kb:deleteDoc', async (_event, input: { id: string; fileName: string }) => {
+    try {
+      const deleted = deleteKnowledgeBaseDoc(getKbRoot(), input.id, input.fileName);
+      return deleted ? { success: true } : { success: false, error: 'Document not found' };
+    } catch (error) {
+      return kbError(error, 'Failed to delete document');
+    }
+  });
+  ipcMain.handle('cowork:kb:pickDocs', async () => {
+    try {
+      const window = BrowserWindow.getFocusedWindow() ?? undefined;
+      const result = await dialog.showOpenDialog(window as BrowserWindow, {
+        properties: ['openFile', 'multiSelections'],
+        filters: [{ name: 'Documents', extensions: ['md', 'txt', 'csv', 'docx', 'xlsx', 'xls', 'pdf'] }],
+      });
+      return { success: true, filePaths: result.canceled ? [] : result.filePaths };
+    } catch (error) {
+      return kbError(error, 'Failed to open file picker');
     }
   });
   // ── Dreaming content display ──────────────────────────────────────────

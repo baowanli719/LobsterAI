@@ -1,12 +1,14 @@
-import { CheckIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, CheckIcon } from '@heroicons/react/24/outline';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { i18nService } from '../../services/i18n';
 import { kitService } from '../../services/kit';
+import { knowledgeBaseService } from '../../services/knowledgeBase';
 import { resolveLocalizedText } from '../../services/skill';
 import { RootState } from '../../store';
 import { setInstalledKits, setMarketplaceKits } from '../../store/slices/kitSlice';
+import { setKnowledgeBases, toggleActiveKnowledgeBase } from '../../store/slices/knowledgeBaseSlice';
 import type { MarketplaceKit } from '../../types/kit';
 import SearchIcon from '../icons/SearchIcon';
 import SidebarKitsIcon from '../icons/SidebarKitsIcon';
@@ -39,6 +41,8 @@ const KitsPopover: React.FC<KitsPopoverProps> = ({
   const installedKits = useSelector((state: RootState) => state.kit.installedKits);
   const marketplaceKits = useSelector((state: RootState) => state.kit.marketplaceKits);
   const activeKitIds = useSelector((state: RootState) => state.kit.activeKitIds);
+  const knowledgeBases = useSelector((state: RootState) => state.knowledgeBase.knowledgeBases);
+  const activeKbIds = useSelector((state: RootState) => state.knowledgeBase.activeKbIds);
 
   const installedKitIds = Object.keys(installedKits);
 
@@ -46,7 +50,7 @@ const KitsPopover: React.FC<KitsPopoverProps> = ({
   const installedKitList: MarketplaceKit[] = installedKitIds
     .map(kitId => marketplaceKits.find(mk => mk.id === kitId))
     .filter((k): k is MarketplaceKit => k !== undefined);
-  const shouldShowSearch = installedKitList.length >= MIN_SEARCHABLE_KIT_COUNT;
+  const shouldShowSearch = installedKitList.length + knowledgeBases.length >= MIN_SEARCHABLE_KIT_COUNT;
 
   // Filter by search query
   const filteredKits = installedKitList.filter(kit => {
@@ -57,6 +61,11 @@ const KitsPopover: React.FC<KitsPopoverProps> = ({
     return name.includes(q) || desc.includes(q);
   });
 
+  const filteredKnowledgeBases = knowledgeBases.filter(kb => {
+    if (!shouldShowSearch || !searchQuery.trim()) return true;
+    return kb.name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   // Lazy-load data when popover opens
   useEffect(() => {
     if (!isOpen) return;
@@ -64,12 +73,14 @@ const KitsPopover: React.FC<KitsPopoverProps> = ({
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [mkKits, installed] = await Promise.all([
+        const [mkKits, installed, kbs] = await Promise.all([
           kitService.fetchMarketplaceKits(),
           kitService.getInstalledKits(),
+          knowledgeBaseService.list(),
         ]);
         dispatch(setMarketplaceKits(mkKits));
         dispatch(setInstalledKits(installed));
+        dispatch(setKnowledgeBases(kbs));
       } catch (error) {
         console.error('[KitsPopover] Failed to load kit data:', error);
       } finally {
@@ -147,7 +158,7 @@ const KitsPopover: React.FC<KitsPopoverProps> = ({
 
   if (!isOpen) return null;
 
-  const shouldShowInstallGuide = !isLoading && installedKitIds.length === 0;
+  const shouldShowInstallGuide = !isLoading && installedKitIds.length === 0 && knowledgeBases.length === 0;
 
   return (
     <div
@@ -201,51 +212,94 @@ const KitsPopover: React.FC<KitsPopoverProps> = ({
               {i18nService.t('kitGoInstall')}
             </button>
           </div>
-        ) : filteredKits.length === 0 ? (
+        ) : filteredKits.length === 0 && filteredKnowledgeBases.length === 0 ? (
           <div className="px-3 py-5 text-center text-[13px] text-secondary">
             {i18nService.t('kitSearchNoResults')}
           </div>
         ) : (
-          filteredKits.map((kit) => {
-            const isActive = activeKitIds.includes(kit.id);
-            return (
-              <button
-                key={kit.id}
-                onClick={() => handleSelectKit(kit.id)}
-                className={`w-full flex items-start gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
-                  isActive
-                    ? 'bg-surface-raised'
-                    : 'hover:bg-surface-raised'
-                }`}
-              >
-                <div
-                  className={`mt-[3px] flex h-5 w-5 flex-shrink-0 items-center justify-center ${
-                    isActive ? 'text-foreground' : 'text-secondary'
+          <>
+            {filteredKits.map((kit) => {
+              const isActive = activeKitIds.includes(kit.id);
+              return (
+                <button
+                  key={kit.id}
+                  onClick={() => handleSelectKit(kit.id)}
+                  className={`w-full flex items-start gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
+                    isActive
+                      ? 'bg-surface-raised'
+                      : 'hover:bg-surface-raised'
                   }`}
                 >
-                  <SidebarKitsIcon className="h-[18px] w-[18px]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <span className="min-w-0 truncate text-[13px] font-semibold leading-5 text-foreground">
-                      {resolveLocalizedText(kit.name)}
-                    </span>
-                    {kit.author && (
-                      <span className="flex-shrink-0 rounded bg-surface-raised px-1.5 py-0.5 text-[10px] font-medium leading-none text-secondary">
-                        {i18nService.t('kitOfficial')}
-                      </span>
-                    )}
+                  <div
+                    className={`mt-[3px] flex h-5 w-5 flex-shrink-0 items-center justify-center ${
+                      isActive ? 'text-foreground' : 'text-secondary'
+                    }`}
+                  >
+                    <SidebarKitsIcon className="h-[18px] w-[18px]" />
                   </div>
-                  <p className="mt-0.5 truncate text-[12px] leading-4 text-secondary">
-                    {resolveLocalizedText(kit.description)}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 truncate text-[13px] font-semibold leading-5 text-foreground">
+                        {resolveLocalizedText(kit.name)}
+                      </span>
+                      {kit.author && (
+                        <span className="flex-shrink-0 rounded bg-surface-raised px-1.5 py-0.5 text-[10px] font-medium leading-none text-secondary">
+                          {i18nService.t('kitOfficial')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 truncate text-[12px] leading-4 text-secondary">
+                      {resolveLocalizedText(kit.description)}
+                    </p>
+                  </div>
+                  {isActive && (
+                    <CheckIcon className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                  )}
+                </button>
+              );
+            })}
+
+            {filteredKnowledgeBases.length > 0 && (
+              <>
+                <div className={`px-2.5 pb-1 text-[11px] font-medium text-secondary ${filteredKits.length > 0 ? 'mt-1.5 border-t border-border pt-2' : 'pt-1'}`}>
+                  {i18nService.t('knowledgeBase')}
                 </div>
-                {isActive && (
-                  <CheckIcon className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-primary" />
-                )}
-              </button>
-            );
-          })
+                {filteredKnowledgeBases.map((kb) => {
+                  const isActive = activeKbIds.includes(kb.id);
+                  return (
+                    <button
+                      key={kb.id}
+                      onClick={() => dispatch(toggleActiveKnowledgeBase(kb.id))}
+                      className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
+                        isActive
+                          ? 'bg-surface-raised'
+                          : 'hover:bg-surface-raised'
+                      }`}
+                    >
+                      <div
+                        className={`flex h-5 w-5 flex-shrink-0 items-center justify-center ${
+                          isActive ? 'text-foreground' : 'text-secondary'
+                        }`}
+                      >
+                        <BookOpenIcon className="h-[18px] w-[18px]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="block min-w-0 truncate text-[13px] font-semibold leading-5 text-foreground">
+                          {kb.name}
+                        </span>
+                        <p className="mt-0.5 truncate text-[12px] leading-4 text-secondary">
+                          {i18nService.t('kbDocCount').replace('{count}', String(kb.docCount))}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <CheckIcon className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </>
         )}
       </div>
     </div>
