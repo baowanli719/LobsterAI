@@ -40,6 +40,12 @@ import {
   setDraftSkillIds,
   updateCurrentSessionModelOverride,
 } from '../../store/slices/coworkSlice';
+import {
+  openGsLoginDialog,
+  selectGsLoginRequired,
+  selectGsOffline,
+  selectGsSubmitDenied,
+} from '../../store/slices/gsAuthSlice';
 import { setActiveKitIds, toggleActiveKit } from '../../store/slices/kitSlice';
 import type { Model } from '../../store/slices/modelSlice';
 import { setActiveSkillIds, setSkills, toggleActiveSkill } from '../../store/slices/skillSlice';
@@ -308,6 +314,9 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     const availableModels = useSelector((state: RootState) => state.model.availableModels);
     const currentSession = useSelector((state: RootState) => state.cowork.currentSession);
     const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
+    const gsLoginRequired = useSelector(selectGsLoginRequired);
+    const gsOffline = useSelector(selectGsOffline);
+    const gsSubmitDenied = useSelector(selectGsSubmitDenied);
     const authQuota = useSelector((state: RootState) => state.auth.quota);
     const asrQuota = useSelector((state: RootState) => state.asrQuota);
     const [value, setValue] = useState(draftPrompt);
@@ -813,6 +822,20 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     if ((!trimmedValue && attachments.length === 0) || disabled || isPatchingModel) return;
     setShowFolderRequiredWarning(false);
 
+    // GS 企业版拦截：未登录 → 弹登录框；离线/管理员暂停提交 → 提示
+    if (gsLoginRequired) {
+      dispatch(openGsLoginDialog());
+      return;
+    }
+    if (gsOffline) {
+      showToast(i18nService.t('gsOfflineDesc'));
+      return;
+    }
+    if (gsSubmitDenied) {
+      showToast(i18nService.t('gsSubmitDeniedDesc'));
+      return;
+    }
+
     const accessPrompt = resolveSubmitModelAccessPrompt();
     if (accessPrompt) {
       setModelAccessPrompt(accessPrompt);
@@ -959,12 +982,18 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
 
     const result = await onSubmit(finalPrompt, skillPrompt, imageAtts.length > 0 ? imageAtts : undefined, mediaReferences.length > 0 ? mediaReferences : undefined, selectedTextSnippets.length > 0 ? selectedTextSnippets : undefined);
     if (result === false) return;
+    // GS 企业版：上报对话日志（元数据 + 提问摘要，不含回复）；主进程判断是否启用，fire-and-forget
+    void window.electron.gsAuth?.logChat({
+      sessionId: draftKey,
+      model: effectiveSelectedModel?.id,
+      promptSummary: trimmedValue.slice(0, 200),
+    });
     setValue('');
     dispatch(setDraftPrompt({ sessionId: draftKey, draft: '' }));
     dispatch(clearDraftAttachments(draftKey));
     dispatch(clearDraftSelectedTextSnippets(draftKey));
     setImageVisionHint(false);
-  }, [value, isVoiceRecording, stopVoiceRecordingAndRecognize, isStreaming, disabled, isPatchingModel, onSubmit, activeSkillIds, skills, activeKitIds, marketplaceKits, installedKits, activeKbIds, knowledgeBases, attachments, showFolderSelector, workingDirectory, dispatch, draftKey, effectiveSelectedModel?.id, modelSupportsImage, mediaLabels, selectedTextSnippets, resolveSubmitModelAccessPrompt]);
+  }, [value, isVoiceRecording, stopVoiceRecordingAndRecognize, isStreaming, disabled, isPatchingModel, onSubmit, activeSkillIds, skills, activeKitIds, marketplaceKits, installedKits, activeKbIds, knowledgeBases, attachments, showFolderSelector, workingDirectory, dispatch, draftKey, effectiveSelectedModel?.id, modelSupportsImage, mediaLabels, selectedTextSnippets, resolveSubmitModelAccessPrompt, gsLoginRequired, gsOffline, gsSubmitDenied]);
 
   const handleSelectSkill = useCallback((skill: Skill) => {
     dispatch(toggleActiveSkill(skill.id));

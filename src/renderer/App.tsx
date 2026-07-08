@@ -17,6 +17,7 @@ import { CoworkShortcutDirection, CoworkUiEvent } from './components/cowork/cons
 import CoworkPermissionModal from './components/cowork/CoworkPermissionModal';
 import CoworkQuestionWizard from './components/cowork/CoworkQuestionWizard';
 import EngineStartupOverlay from './components/cowork/EngineStartupOverlay';
+import GsLoginDialog from './components/GsLoginDialog';
 import KitsView from './components/kits/KitsView';
 import KnowledgeBaseView from './components/kits/KnowledgeBaseView';
 import { McpView } from './components/mcp';
@@ -35,6 +36,7 @@ import { apiService } from './services/api';
 import { authService } from './services/auth';
 import { configService } from './services/config';
 import { coworkService } from './services/cowork';
+import { gsAuthService } from './services/gsAuth';
 import { i18nService } from './services/i18n';
 import { scheduledTaskService } from './services/scheduledTask';
 import { matchesShortcut } from './services/shortcuts';
@@ -127,7 +129,27 @@ const App: React.FC = () => {
   const currentSessionId = useSelector(selectCurrentSessionId);
   const pendingPermission = useSelector(selectFirstPendingPermission);
   const authUser = useSelector((state: RootState) => state.auth.user);
+  const gsEnabled = useSelector((state: RootState) => state.gsAuth.enabled);
+  const gsConfig = useSelector((state: RootState) => state.gsAuth.config);
   const isWindows = window.electron.platform === 'win32';
+
+  // GS 服务端下发的 settingsPages 合并进企业 ui 规则（hidden→hide、readonly→readonly），
+  // 与本地 enterprise-config 走同一套设置页管控通道；服务端值优先。
+  const effectiveEnterpriseConfig = useMemo(() => {
+    if (!gsEnabled || !gsConfig) return enterpriseConfig;
+    const remoteUi: Record<string, 'hide' | 'disable' | 'readonly'> = {};
+    for (const [page, mode] of Object.entries(gsConfig.settingsPages ?? {})) {
+      if (mode === 'hidden') remoteUi[`settings.${page}`] = 'hide';
+      else if (mode === 'readonly') remoteUi[`settings.${page}`] = 'readonly';
+    }
+    if (gsConfig.features?.customModel === false) {
+      remoteUi['settings.model'] = 'hide';
+    }
+    return {
+      ...(enterpriseConfig ?? {}),
+      ui: { ...(enterpriseConfig?.ui ?? {}), ...remoteUi },
+    };
+  }, [gsEnabled, gsConfig, enterpriseConfig]);
 
   const waitWithTimeout = useCallback(
     async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
@@ -193,6 +215,9 @@ const App: React.FC = () => {
         mark('authService.init begin');
         await authService.init();
         mark('authService.init done');
+
+        await gsAuthService.init();
+        mark('gsAuthService.init done');
 
         const config = await configService.getConfig();
         const apiConfig: ApiConfig = {
@@ -968,7 +993,7 @@ const App: React.FC = () => {
               initialTabRequestId={settingsOptions.requestId}
               notice={settingsOptions.notice}
               onUpdateFound={handleUpdateFound}
-              enterpriseConfig={enterpriseConfig}
+              enterpriseConfig={effectiveEnterpriseConfig}
             />
           )}
         </div>
@@ -981,6 +1006,7 @@ const App: React.FC = () => {
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
+      <GsLoginDialog />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar
           onShowLogin={handleShowLogin}

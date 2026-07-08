@@ -13,6 +13,9 @@ export type EnterpriseManifest = {
   name: string;
   ui?: Record<string, EnterpriseUIAction>;
   disableUpdate?: boolean;
+  /** GS 企业服务端（登录 + 客户端配置下发）；不配置 baseUrl 则回落到打包内置值。
+   *  lockBaseUrl=true 时禁止用户在登录框里手改地址。 */
+  server?: { baseUrl?: string; lockBaseUrl?: boolean };
   sync: {
     openclaw: boolean;
     skills: boolean | 'merge' | 'overwrite';

@@ -39,6 +39,9 @@ export interface BrandingConfig {
   /** Fully offline: short-circuit every LobsterAI/Youdao cloud endpoint so no
    *  cloud request is ever sent (the model gateway is unaffected). */
   disableCloudServices: boolean;
+  /** 打包内置的 GS 企业服务端默认地址（登录 + 配置下发）。空串表示未启用。
+   *  可被 enterprise-config manifest 的 server.baseUrl 或用户在登录框里手填覆盖。 */
+  gsServerBaseUrl: string;
 }
 
 const DEFAULTS: BrandingConfig = {
@@ -52,6 +55,7 @@ const DEFAULTS: BrandingConfig = {
   showImChannels: true,
   showVoiceInput: true,
   disableCloudServices: false,
+  gsServerBaseUrl: '',
 };
 
 type RawBranding = {
@@ -65,6 +69,7 @@ type RawBranding = {
   showImChannels?: unknown;
   showVoiceInput?: unknown;
   disableCloudServices?: unknown;
+  gsServerBaseUrl?: unknown;
 };
 
 const str = (value: unknown): string | undefined =>
@@ -95,6 +100,7 @@ function resolveBranding(): BrandingConfig {
     disableCloudServices: typeof c.disableCloudServices === 'boolean'
       ? c.disableCloudServices
       : DEFAULTS.disableCloudServices,
+    gsServerBaseUrl: str(c.gsServerBaseUrl) ?? DEFAULTS.gsServerBaseUrl,
   };
 }
 

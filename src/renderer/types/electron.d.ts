@@ -1444,6 +1444,18 @@ interface IElectronAPI {
       name: string;
     } | null>;
   };
+  gsAuth: {
+    getState: () => Promise<import('../store/slices/gsAuthSlice').GsAuthState>;
+    login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+    logout: () => Promise<void>;
+    refresh: () => Promise<import('../store/slices/gsAuthSlice').GsAuthState>;
+    setServerUrl: (url: string) => Promise<{ success: boolean; message?: string }>;
+    changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+    logChat: (payload: { sessionId?: string; model?: string; promptSummary?: string }) => Promise<void>;
+    onStateChanged: (
+      callback: (state: import('../store/slices/gsAuthSlice').GsAuthState) => void,
+    ) => () => void;
+  };
   networkStatus: {
     send: (status: 'online' | 'offline') => void;
   };

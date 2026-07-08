@@ -3163,6 +3163,16 @@ const Settings: React.FC<SettingsProps> = ({
     return sidebarTabs.find(t => t.key === activeTab)?.label ?? '';
   }, [activeTab, sidebarTabs]);
 
+  // 企业/服务端配置把当前页标记为 readonly 时整页只读
+  const activeTabReadonly = enterpriseConfig?.ui?.[`settings.${activeTab}`] === 'readonly';
+
+  // 配置刷新后当前页可能被隐藏（例如服务端下发 hidden），退回第一个可见页
+  useEffect(() => {
+    if (sidebarTabs.length > 0 && !sidebarTabs.some(tab => tab.key === activeTab)) {
+      setActiveTab(sidebarTabs[0].key);
+    }
+  }, [sidebarTabs, activeTab]);
+
   useEffect(() => {
     const handleSettingsTabShortcut = (event: KeyboardEvent) => {
       if (event.repeat || isShortcutInputActive() || isTextEditingActive()) return;
@@ -4271,7 +4281,17 @@ const Settings: React.FC<SettingsProps> = ({
               className="px-6 py-4 flex-1 overflow-y-auto"
               style={{ scrollbarGutter: 'stable' }}
             >
-              {renderTabContent()}
+              {activeTabReadonly && (
+                <div className="mb-4 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-400">
+                  {i18nService.t('gsSettingsReadonly')}
+                </div>
+              )}
+              <fieldset
+                disabled={activeTabReadonly}
+                className={activeTabReadonly ? 'pointer-events-none opacity-60' : undefined}
+              >
+                {renderTabContent()}
+              </fieldset>
             </div>
 
             {/* Footer buttons */}
@@ -4285,7 +4305,7 @@ const Settings: React.FC<SettingsProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || activeTabReadonly}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {isSaving ? i18nService.t('saving') : i18nService.t('save')}

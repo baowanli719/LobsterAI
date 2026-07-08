@@ -112,6 +112,23 @@ contextBridge.exposeInMainWorld('electron', {
   enterprise: {
     getConfig: () => ipcRenderer.invoke('enterprise:getConfig'),
   },
+  gsAuth: {
+    getState: () => ipcRenderer.invoke('gsAuth:getState'),
+    login: (username: string, password: string) =>
+      ipcRenderer.invoke('gsAuth:login', { username, password }),
+    logout: () => ipcRenderer.invoke('gsAuth:logout'),
+    refresh: () => ipcRenderer.invoke('gsAuth:refresh'),
+    setServerUrl: (url: string) => ipcRenderer.invoke('gsAuth:setServerUrl', { url }),
+    changePassword: (oldPassword: string, newPassword: string) =>
+      ipcRenderer.invoke('gsAuth:changePassword', { oldPassword, newPassword }),
+    logChat: (payload: { sessionId?: string; model?: string; promptSummary?: string }) =>
+      ipcRenderer.invoke('gsAuth:logChat', payload),
+    onStateChanged: (callback: (state: unknown) => void) => {
+      const handler = (_event: unknown, state: unknown) => callback(state);
+      ipcRenderer.on('gsAuth:stateChanged', handler);
+      return () => ipcRenderer.removeListener('gsAuth:stateChanged', handler);
+    },
+  },
   api: {
     // 普通 API 请求（非流式）
     fetch: (options: {

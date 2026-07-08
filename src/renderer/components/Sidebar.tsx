@@ -23,6 +23,7 @@ import MyAgentSidebarTree from './agentSidebar/MyAgentSidebarTree';
 import Modal from './common/Modal';
 import { CoworkUiEvent } from './cowork/constants';
 import CoworkSearchModal from './cowork/CoworkSearchModal';
+import GsLoginButton from './GsLoginButton';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
 import ComposeIcon from './icons/ComposeIcon';
 import SidebarAutomationIcon from './icons/SidebarAutomationIcon';
@@ -84,6 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const currentAgentId = useSelector((state: RootState) => state.agent.currentAgentId);
   const agents = useSelector((state: RootState) => state.agent.agents);
+  const gsEnabled = useSelector((state: RootState) => state.gsAuth.enabled);
   const sessions = useSelector(selectCoworkSessions);
   const currentSessionId = useSelector(selectCurrentSessionId);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -575,10 +577,15 @@ const Sidebar: React.FC<SidebarProps> = ({
               <LoginButton />
             </div>
           )}
+          {gsEnabled && (
+            <div className="flex-1 min-w-0">
+              <GsLoginButton />
+            </div>
+          )}
           <button
             type="button"
             onClick={() => onShowSettings()}
-            className={`inline-flex h-7 items-center justify-start gap-1.5 rounded-md px-1.5 text-[14px] font-normal text-foreground/80 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04] ${hideLogin ? 'w-full' : 'shrink-0'}`}
+            className={`inline-flex h-7 items-center justify-start gap-1.5 rounded-md px-1.5 text-[14px] font-normal text-foreground/80 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04] ${hideLogin && !gsEnabled ? 'w-full' : 'shrink-0'}`}
             aria-label={i18nService.t('settings')}
           >
             <Cog6ToothIcon className="h-4 w-4 shrink-0" />

@@ -203,6 +203,7 @@ import {
   resolveEnterpriseConfigPath,
   syncEnterpriseConfig,
 } from './libs/enterpriseConfigSync';
+import { initGsServerAuth } from './libs/gsServerAuth';
 import {
   createOfficePreviewSession,
   createPreviewSession,
@@ -10269,6 +10270,9 @@ if (!gotTheLock) {
       }
     }
     profiler.measure('enterpriseConfigSync');
+
+    // GS 服务端对接（登录 + 配置下发），依赖上面同步好的 enterprise_config
+    initGsServerAuth(store);
 
     bindCoworkRuntimeForwarder();
     bindOpenClawStatusForwarder();

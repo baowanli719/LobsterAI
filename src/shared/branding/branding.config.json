@@ -12,5 +12,6 @@
   "showImChannels": false,
   "showVoiceInput": false,
   "disableCloudServices": true,
+  "gsServerBaseUrl": "http://localhost:18300",
   "fileName": "GSAIOffice"
 }
