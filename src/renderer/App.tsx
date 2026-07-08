@@ -1088,7 +1088,7 @@ const App: React.FC = () => {
           initialTabRequestId={settingsOptions.requestId}
           notice={settingsOptions.notice}
           onUpdateFound={handleUpdateFound}
-          enterpriseConfig={enterpriseConfig}
+          enterpriseConfig={effectiveEnterpriseConfig}
         />
       )}
       {showUpdateModal && updateInfo && (
