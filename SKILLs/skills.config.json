@@ -11,7 +11,7 @@
     "develop-web-game": { "order": 60, "enabled": true },
     "playwright": { "order": 70, "enabled": true },
     "create-plan": { "order": 80, "enabled": true },
-    "report-builder": { "order": 85, "enabled": true },
+    "rich-report": { "order": 8, "enabled": true },
     "canvas-design": { "order": 90, "enabled": true },
     "frontend-design": { "order": 100, "enabled": true },
     "stock-analyzer": { "order": 110, "enabled": true },
