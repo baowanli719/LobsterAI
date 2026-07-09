@@ -1,5 +1,6 @@
 ---
 name: rich-report
+version: "1.1.0"
 description: Create polished Chinese writing-focused DOCX reports with structured arguments, research-report-style prose, formatted tables, matplotlib charts, captions, data-source notes, and layout checks. Use when the user asks for 盛写作, rich-report, 图文并茂写作, 研报式写作, professional Word reports, financial research notes, or analytical DOCX documents containing narrative, tables, and images.
 ---
 
@@ -7,7 +8,7 @@ description: Create polished Chinese writing-focused DOCX reports with structure
 
 ## Overview
 
-Use this skill as a dedicated Chinese writing workflow for polished DOCX reports. Produce documents that combine strong narrative structure, conclusion-first analysis, clean tables, matplotlib-generated charts, captions, source notes, and a final layout check.
+Use this skill as a dedicated Chinese writing workflow for polished DOCX reports. Produce documents that combine strong narrative structure, conclusion-first analysis, clean tables, matplotlib-generated charts, captions, source notes, unified Microsoft YaHei typography, and a final layout check.
 
 Default to `.docx` as the deliverable unless the user explicitly requests another format. Use `matplotlib` for generated charts and `python-docx` for assembling the Word document. If the system Python lacks document or plotting packages, use the Codex bundled Python runtime when available.
 
@@ -30,6 +31,7 @@ Prefer this structure for analytical writing:
 - 正文分析: organize sections by logic, not by available material order
 - 图表说明: every table and figure needs a title, unit where relevant, and source note
 - 风险提示 or 局限说明: include when the report supports an investment, business, strategy, or policy decision
+- Typography: use Microsoft YaHei throughout the DOCX; indent body paragraphs by two Chinese characters on the first line
 
 ## Scripts
 
@@ -57,6 +59,8 @@ The spec supports:
 ## Quality Bar
 
 - Write in Chinese by default for Chinese user requests.
+- Use Microsoft YaHei for DOCX text and matplotlib charts.
+- Indent every normal body paragraph by two Chinese characters on the first line. Do not apply this indent to titles, headings, bullets, captions, source notes, or table cells.
 - Use conclusion-first paragraphs: state the claim, then support it with data or reasoning.
 - Use tables for precise comparison and charts for trend, structure, distribution, or correlation.
 - Never insert an unlabeled chart or table.

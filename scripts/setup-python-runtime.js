@@ -598,13 +598,13 @@ function ensureSkillDependencies(pythonPath) {
   const reqFile = path.join(__dirname, 'python-skill-requirements.txt');
   if (!fs.existsSync(reqFile)) return;
 
-  const probe = spawnSync(pythonPath, ['-c', 'import docx, matplotlib, pandas'], { stdio: 'ignore' });
+  const probe = spawnSync(pythonPath, ['-c', 'import docx, matplotlib, pandas, openpyxl'], { stdio: 'ignore' });
   if (probe.status === 0) {
     console.log('[setup-python-runtime] Skill dependencies already present; skip.');
     return;
   }
 
-  console.log('[setup-python-runtime] Installing skill dependencies (python-docx, matplotlib, pandas)...');
+  console.log('[setup-python-runtime] Installing skill dependencies (python-docx, matplotlib, pandas, openpyxl)...');
   try {
     runCommand(pythonPath, ['-m', 'pip', 'install', '--disable-pip-version-check', '-r', reqFile], {
       timeout: 15 * 60 * 1000,

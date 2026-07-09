@@ -14,6 +14,9 @@ from docx.shared import Inches, Pt, RGBColor
 
 
 DEFAULT_FONT = "Microsoft YaHei"
+BODY_FONT_SIZE_PT = 10.5
+BODY_FIRST_LINE_INDENT_CHARS = 2
+BODY_FIRST_LINE_INDENT_PT = BODY_FONT_SIZE_PT * BODY_FIRST_LINE_INDENT_CHARS
 TITLE_COLOR = RGBColor(31, 92, 153)
 TEXT_COLOR = RGBColor(31, 41, 51)
 MUTED_COLOR = RGBColor(107, 114, 128)
@@ -37,7 +40,7 @@ def configure_styles(doc: Document) -> None:
         style.font.name = DEFAULT_FONT
         style._element.rPr.rFonts.set(qn("w:eastAsia"), DEFAULT_FONT)
 
-    doc.styles["Normal"].font.size = Pt(10.5)
+    doc.styles["Normal"].font.size = Pt(BODY_FONT_SIZE_PT)
     doc.styles["Normal"].font.color.rgb = TEXT_COLOR
     doc.styles["Heading 1"].font.size = Pt(15)
     doc.styles["Heading 1"].font.bold = True
@@ -53,10 +56,20 @@ def configure_styles(doc: Document) -> None:
     section.right_margin = Inches(0.72)
 
 
-def add_paragraph(doc: Document, text: str, style: str | None = None, size: int | None = None) -> None:
+def add_paragraph(
+    doc: Document,
+    text: str,
+    style: str | None = None,
+    size: int | None = None,
+    first_line_indent: bool | None = None,
+) -> None:
     paragraph = doc.add_paragraph(style=style)
     paragraph.paragraph_format.space_after = Pt(5)
     paragraph.paragraph_format.line_spacing = 1.18
+    if first_line_indent is None:
+        first_line_indent = style is None and size is None
+    if first_line_indent:
+        paragraph.paragraph_format.first_line_indent = Pt(BODY_FIRST_LINE_INDENT_PT)
     run = paragraph.add_run(text)
     set_run_font(run, size=size)
 

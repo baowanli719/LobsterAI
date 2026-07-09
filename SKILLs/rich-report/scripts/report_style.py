@@ -9,13 +9,7 @@ from cycler import cycler
 from matplotlib.font_manager import fontManager
 
 
-FONT_CANDIDATES = [
-    "Microsoft YaHei",
-    "SimHei",
-    "Noto Sans CJK SC",
-    "Source Han Sans SC",
-    "Arial Unicode MS",
-]
+REPORT_FONT = "Microsoft YaHei"
 
 PALETTE = [
     "#1F5C99",
@@ -33,17 +27,17 @@ MUTED_TEXT_COLOR = "#6B7280"
 
 def find_chinese_font() -> str:
     available = {font.name for font in fontManager.ttflist}
-    for candidate in FONT_CANDIDATES:
-        if candidate in available:
-            return candidate
-    return "DejaVu Sans"
+    if REPORT_FONT not in available:
+        raise RuntimeError("Microsoft YaHei font is required for rich-report charts.")
+    return REPORT_FONT
 
 
 def configure_matplotlib(font_name: Optional[str] = None) -> str:
     selected_font = font_name or find_chinese_font()
     mpl.rcParams.update(
         {
-            "font.sans-serif": [selected_font, "DejaVu Sans"],
+            "font.family": "sans-serif",
+            "font.sans-serif": [selected_font],
             "axes.unicode_minus": False,
             "figure.dpi": 130,
             "savefig.dpi": 300,
