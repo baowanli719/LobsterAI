@@ -124,6 +124,20 @@ const isAuthError = (error: unknown): boolean => {
   return status === 401 || status === 403;
 };
 
+/** 登录/刷新成功后触发（用于 skill 自动同步等）；main.ts 注册 */
+let postSyncHook: (() => void) | null = null;
+export function setGsPostSyncHook(fn: () => void): void {
+  postSyncHook = fn;
+}
+const triggerPostSync = (): void => {
+  try { postSyncHook?.(); } catch { /* 钩子异常不影响主流程 */ }
+};
+
+/** 供 skill 同步等模块读取当前登录上下文 */
+export function getGsAuthContext(): { enabled: boolean; baseUrl: string; token: string | null; isLoggedIn: boolean } {
+  return { enabled: state.enabled, baseUrl, token, isLoggedIn: state.isLoggedIn };
+}
+
 /** 拉取最新配置。鉴权失败 → 登出；网络失败 → online=false 并保留缓存配置。 */
 async function refresh(): Promise<void> {
   if (!state.enabled || !token) return;
@@ -139,6 +153,7 @@ async function refresh(): Promise<void> {
       lastSyncAt: Date.now(),
     };
     persist();
+    triggerPostSync();
   } catch (error) {
     if (isAuthError(error)) {
       console.warn('[GsAuth] token 失效，已登出:', (error as Error).message);
@@ -178,6 +193,7 @@ async function login(username: string, password: string): Promise<{ success: boo
     };
     persist();
     broadcastState();
+    triggerPostSync();
     return { success: true };
   } catch (error) {
     const message = (error as Error).message;

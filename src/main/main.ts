@@ -203,7 +203,8 @@ import {
   resolveEnterpriseConfigPath,
   syncEnterpriseConfig,
 } from './libs/enterpriseConfigSync';
-import { initGsServerAuth } from './libs/gsServerAuth';
+import { initGsServerAuth, setGsPostSyncHook } from './libs/gsServerAuth';
+import { syncServerSkills } from './libs/gsSkillSync';
 import {
   createOfficePreviewSession,
   createPreviewSession,
@@ -10273,6 +10274,8 @@ if (!gotTheLock) {
 
     // GS 服务端对接（登录 + 配置下发），依赖上面同步好的 enterprise_config
     initGsServerAuth(store);
+    // 登录/刷新成功后自动同步服务端下发的 skill（拉列表→比版本→下载解压覆盖）
+    setGsPostSyncHook(() => { void syncServerSkills(getSkillManager()); });
 
     bindCoworkRuntimeForwarder();
     bindOpenClawStatusForwarder();

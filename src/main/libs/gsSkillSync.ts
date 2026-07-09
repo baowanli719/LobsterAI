@@ -1,0 +1,105 @@
+/**
+ * GS 服务端 skill 自动同步：登录/刷新后拉取服务端 skill 列表，
+ * 按版本号对比，服务端更新的下载 zip 解压覆盖到本地 SKILLs 目录并启用。
+ *
+ * 只同步服务端上传的 skill；内置 skill 走安装包，不受影响。
+ * 全程 fire-and-forget，失败静默，离线用本地已有。
+ */
+import extract from 'extract-zip';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+import { getGsAuthContext } from './gsServerAuth';
+
+interface ServerSkill {
+  name: string;
+  version: string;
+  enabled: number;
+}
+
+interface SkillManagerLike {
+  getSkillsRoot(): string;
+  setSkillEnabled(id: string, enabled: boolean): unknown;
+}
+
+const parseVersion = (v: string): number[] =>
+  String(v || '0').split('.').map((n) => parseInt(n, 10) || 0);
+
+/** 语义化版本比较：a>b 返回 1，a<b 返回 -1，相等返回 0 */
+function cmpVersion(a: string, b: string): number {
+  const pa = parseVersion(a);
+  const pb = parseVersion(b);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d !== 0) return d > 0 ? 1 : -1;
+  }
+  return 0;
+}
+
+/** 读本地 skill 的 version；目录不存在返回空串（表示需要下载） */
+function readLocalVersion(skillDir: string): string {
+  try {
+    const raw = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8');
+    const fm = /^---\s*([\s\S]*?)\s*---/.exec(raw);
+    const body = fm ? fm[1] : raw;
+    const m = /^version:\s*["']?(.+?)["']?\s*$/im.exec(body);
+    return m ? m[1].trim() : '0.0.0';
+  } catch {
+    return '';
+  }
+}
+
+let syncing = false;
+
+export async function syncServerSkills(skillManager: SkillManagerLike): Promise<void> {
+  const ctx = getGsAuthContext();
+  if (!ctx.enabled || !ctx.token || !ctx.baseUrl || !ctx.isLoggedIn) return;
+  if (syncing) return;
+  syncing = true;
+  try {
+    const listRes = await fetch(`${ctx.baseUrl}/api/skills`, {
+      headers: { Authorization: `Bearer ${ctx.token}` },
+    });
+    if (!listRes.ok) return;
+    const body = (await listRes.json()) as { skills?: ServerSkill[] };
+    const skills = Array.isArray(body.skills) ? body.skills : [];
+    if (skills.length === 0) return;
+
+    const root = skillManager.getSkillsRoot();
+    fs.mkdirSync(root, { recursive: true });
+
+    for (const s of skills) {
+      if (!s?.name || s.enabled === 0) continue;
+      const localVer = readLocalVersion(path.join(root, s.name));
+      // 本地已存在且版本不低于服务端 → 跳过
+      if (localVer && cmpVersion(s.version, localVer) <= 0) continue;
+
+      try {
+        const dlRes = await fetch(`${ctx.baseUrl}/api/skills/${encodeURIComponent(s.name)}/download`, {
+          headers: { Authorization: `Bearer ${ctx.token}` },
+        });
+        if (!dlRes.ok) continue;
+        const buf = Buffer.from(await dlRes.arrayBuffer());
+        const tmpZip = path.join(os.tmpdir(), `gsskill-${s.name}-${process.pid}.zip`);
+        fs.writeFileSync(tmpZip, buf);
+
+        // 覆盖旧版：先删目录再解压（zip 内含 <name>/ 顶层目录）
+        const dest = path.join(root, s.name);
+        fs.rmSync(dest, { recursive: true, force: true });
+        await extract(tmpZip, { dir: root });
+        fs.rmSync(tmpZip, { force: true });
+
+        skillManager.setSkillEnabled(s.name, true);
+        console.log(`[gsSkillSync] 已更新 skill "${s.name}" -> ${s.version}`);
+      } catch (err) {
+        console.warn(`[gsSkillSync] 同步 skill "${s.name}" 失败:`, (err as Error).message);
+      }
+    }
+  } catch (err) {
+    console.warn('[gsSkillSync] 拉取 skill 列表失败:', (err as Error).message);
+  } finally {
+    syncing = false;
+  }
+}

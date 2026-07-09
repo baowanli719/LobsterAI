@@ -346,6 +346,14 @@ export interface OpenClawSkillStatusEntry {
 const SKILLS_DIR_NAME = 'SKILLs';
 const SKILL_FILE_NAME = 'SKILL.md';
 const SKILLS_CONFIG_FILE = 'skills.config.json';
+const BundledSkillId = {
+  RichReport: 'rich-report',
+  GsclawAdmin: 'gsclaw-admin',
+} as const;
+const DEPRECATED_BUNDLED_SKILL_IDS = new Set<string>([
+  BundledSkillId.GsclawAdmin,
+]);
+const RICH_REPORT_PREVIOUS_DEFAULT_ORDER = 8;
 const SKILL_STATE_KEY = 'skills_state';
 const WATCH_DEBOUNCE_MS = 250;
 
@@ -1413,6 +1421,7 @@ export class SkillManager {
     console.log('[skills] syncBundledSkillsToUserData: userRoot =', userRoot);
     const bundledRoot = this.getBundledSkillsRoot();
     console.log('[skills] syncBundledSkillsToUserData: bundledRoot =', bundledRoot);
+    this.removeDeprecatedBundledSkills(userRoot);
     if (!bundledRoot || bundledRoot === userRoot || !fs.existsSync(bundledRoot)) {
       console.log('[skills] syncBundledSkillsToUserData: bundledRoot skipped (missing or same as userRoot)');
       return;
@@ -1441,6 +1450,9 @@ export class SkillManager {
       console.log('[skills] syncBundledSkillsToUserData: found', bundledSkillDirs.length, 'bundled skills');
       bundledSkillDirs.forEach((dir) => {
         const id = path.basename(dir);
+        if (DEPRECATED_BUNDLED_SKILL_IDS.has(id)) {
+          return;
+        }
         if (bundledIds && !bundledIds.has(id)) {
           console.log(`[skills] syncBundledSkillsToUserData: skipping non-bundled "${id}"`);
           return;
@@ -1520,6 +1532,31 @@ export class SkillManager {
     }
   }
 
+  private removeDeprecatedBundledSkills(userRoot: string): void {
+    let stateChanged = false;
+    const state = this.loadSkillStateMap();
+
+    for (const id of DEPRECATED_BUNDLED_SKILL_IDS) {
+      try {
+        const targetDir = resolveWithin(userRoot, id);
+        if (fs.existsSync(targetDir)) {
+          fs.rmSync(targetDir, { recursive: true, force: true });
+          console.log(`[skills] Removed deprecated bundled skill "${id}" from user data`);
+        }
+        if (state[id]) {
+          delete state[id];
+          stateChanged = true;
+        }
+      } catch (error) {
+        console.warn(`[skills] Failed to remove deprecated bundled skill "${id}":`, error);
+      }
+    }
+
+    if (stateChanged) {
+      this.saveSkillStateMap(state);
+    }
+  }
+
   /**
    * Check if a skill's runtime is healthy by comparing with bundled version.
    * Returns false if bundled has dependencies but target doesn't.
@@ -1571,6 +1608,20 @@ export class SkillManager {
           changed = true;
         }
       }
+      const bundledRichReportConfig = bundled.defaults[BundledSkillId.RichReport] as SkillDefaultConfig | undefined;
+      const targetRichReportConfig = target.defaults[BundledSkillId.RichReport] as SkillDefaultConfig | undefined;
+      if (
+        bundledRichReportConfig &&
+        typeof bundledRichReportConfig.order === 'number' &&
+        targetRichReportConfig?.order === RICH_REPORT_PREVIOUS_DEFAULT_ORDER &&
+        targetRichReportConfig.order !== bundledRichReportConfig.order
+      ) {
+        target.defaults[BundledSkillId.RichReport] = {
+          ...targetRichReportConfig,
+          order: bundledRichReportConfig.order,
+        };
+        changed = true;
+      }
       if (changed) {
         // Write to temp file first, then rename for atomic update
         const tmpPath = targetPath + '.tmp';
@@ -1597,6 +1648,9 @@ export class SkillManager {
       const skillDirs = listSkillDirs(root);
       skillDirs.forEach(dir => {
         const skillId = path.basename(dir);
+        if (DEPRECATED_BUNDLED_SKILL_IDS.has(skillId)) {
+          return;
+        }
         if (skillId === ComputerUseSkillId.BuiltIn && !isComputerUseKitInstalled(this.getStore())) {
           return;
         }
@@ -2437,7 +2491,11 @@ export class SkillManager {
     try {
       const raw = fs.readFileSync(skillFile, 'utf8');
       const { frontmatter, content } = parseFrontmatter(raw);
-      const name = (String(frontmatter.name || '') || path.basename(dir)).trim() || path.basename(dir);
+      // displayName only affects UI labels; the runtime id remains the directory name.
+      const displayName = String(frontmatter.displayName || '').trim();
+      const name = displayName
+        || (String(frontmatter.name || '') || path.basename(dir)).trim()
+        || path.basename(dir);
       const description = (String(frontmatter.description || '') || extractDescription(content) || name).trim();
       const isOfficial = isTruthy(frontmatter.official) || isTruthy(frontmatter.isOfficial);
       const meta = frontmatter.metadata as Record<string, unknown> | undefined;
