@@ -1,0 +1,5 @@
+# 内置 Python 运行时需预装的 skill 依赖（打包时由 setup-python-runtime.js 自动补装）。
+# rich-report 写作 skill：python-docx 生成 Word，matplotlib 出图，pandas 处理表格数据。
+python-docx
+matplotlib
+pandas

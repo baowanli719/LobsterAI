@@ -587,6 +587,38 @@ function findPortablePythonExecutable(baseDir = OUTPUT_DIR) {
   return null;
 }
 
+/**
+ * 确保内置 Python 装好各 skill 需要的第三方包（见 python-skill-requirements.txt）。
+ * 幂等：先探测是否已装齐，缺才 pip 安装（走 python-win/pip.ini 里配置的镜像源）。
+ * 任何打包机首次准备运行时都会自动补装，避免换机器漏依赖导致 rich-report 图表失效。
+ * 安装失败只告警、不中断打包（离线打包机可能装不了，但不应 block 整个构建）。
+ */
+function ensureSkillDependencies(pythonPath) {
+  if (!pythonPath) return;
+  const reqFile = path.join(__dirname, 'python-skill-requirements.txt');
+  if (!fs.existsSync(reqFile)) return;
+
+  const probe = spawnSync(pythonPath, ['-c', 'import docx, matplotlib, pandas'], { stdio: 'ignore' });
+  if (probe.status === 0) {
+    console.log('[setup-python-runtime] Skill dependencies already present; skip.');
+    return;
+  }
+
+  console.log('[setup-python-runtime] Installing skill dependencies (python-docx, matplotlib, pandas)...');
+  try {
+    runCommand(pythonPath, ['-m', 'pip', 'install', '--disable-pip-version-check', '-r', reqFile], {
+      timeout: 15 * 60 * 1000,
+    });
+    console.log('[setup-python-runtime] Skill dependencies installed.');
+  } catch (error) {
+    console.warn(
+      '[setup-python-runtime] Skill dependency install failed; rich-report charts may not work. '
+      + `请在打包机手动执行 python-win\\python.exe -m pip install -r scripts\\python-skill-requirements.txt。`
+      + ` Reason: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
 async function ensurePortablePythonRuntime(options = {}) {
   const required = Boolean(options.required);
   const shouldRun = process.platform === 'win32'
@@ -605,6 +637,7 @@ async function ensurePortablePythonRuntime(options = {}) {
     if (existingFullHealth.ok) {
       const pythonPath = findPortablePythonExecutable(OUTPUT_DIR);
       console.log(`[setup-python-runtime] Runtime already prepared: ${pythonPath || OUTPUT_DIR}`);
+      ensureSkillDependencies(pythonPath);
       return { ok: true, skipped: false, pythonPath };
     }
     console.warn(
@@ -648,6 +681,8 @@ async function ensurePortablePythonRuntime(options = {}) {
       + finalHealth.missing.join(', ')
     );
   }
+  ensureSkillDependencies(pythonPath);
+
   const finalSize = getDirSize(OUTPUT_DIR);
   console.log(`[setup-python-runtime] Portable Python runtime ready: ${pythonPath || OUTPUT_DIR}`);
   console.log(`[setup-python-runtime] Total size: ~${(finalSize / 1024 / 1024).toFixed(1)} MB`);
