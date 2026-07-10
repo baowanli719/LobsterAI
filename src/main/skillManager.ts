@@ -11,6 +11,7 @@ import { isComputerUseKitInstalled } from './computerUse/computerUseKit';
 import { cpRecursiveSync } from './fsCompat';
 import { t } from './i18n';
 import { getElectronNodeRuntimePath } from './libs/coworkUtil';
+import { getGsClientConfig } from './libs/gsServerAuth';
 import { appendPythonRuntimeToEnv } from './libs/pythonRuntime';
 import { mergeReports,scanMultipleSkillDirs } from './libs/skillSecurity/skillSecurityScanner';
 import type { SecurityReportAction,SkillSecurityReport } from './libs/skillSecurity/skillSecurityTypes';
@@ -300,6 +301,12 @@ export type SkillRecord = {
   prompt: string;
   skillPath: string;
   version?: string;
+  /** 被云端强制管控（on/off）时为 true：用户在客户端不可更改该 skill 的开关 */
+  locked?: boolean;
+  /** 被本地安全扫描拦截（高危野包）：强制禁用，管理员可在云端设 'on' 解禁 */
+  blocked?: boolean;
+  /** 安全扫描结果：safe/low/medium/high/critical；pending=扫描中 */
+  riskLevel?: string;
 };
 
 type SkillStateMap = Record<string, { enabled: boolean }>;
@@ -355,7 +362,16 @@ const DEPRECATED_BUNDLED_SKILL_IDS = new Set<string>([
 ]);
 const RICH_REPORT_PREVIOUS_DEFAULT_ORDER = 8;
 const SKILL_STATE_KEY = 'skills_state';
+/** gsSkillSync 记录的"服务端下发 skill"清单，用于区分野包 */
+const GS_SERVER_SKILL_IDS_KEY = 'gs_server_skill_ids';
+/** 加载时安全扫描结果缓存：{ [skillId]: { riskLevel, mtimeMs, scannedAt } } */
+const SKILL_SCAN_CACHE_KEY = 'skill_scan_cache';
 const WATCH_DEBOUNCE_MS = 250;
+
+type SkillScanCache = Record<string, { riskLevel: string; mtimeMs: number; scannedAt: number }>;
+
+/** 加载时拦截阈值：高危及以上强制禁用 */
+const BLOCKED_RISK_LEVELS = new Set(['high', 'critical']);
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
@@ -1662,6 +1678,50 @@ export class SkillManager {
 
     const skills = Array.from(skillMap.values());
 
+    const gsConfig = getGsClientConfig();
+
+    // 企业策略禁止安装外部 skill 时：对"来路不明"的本地 skill（非内置/插件/服务端下发）
+    // 做加载时安全扫描，高危的强制禁用。用户自己创建的低风险 skill 不受影响。
+    if (gsConfig?.permissions?.allowExternalSkillInstall === false) {
+      const serverIds = this.getServerSkillIds();
+      const cache = this.loadSkillScanCache();
+      const needScan: SkillRecord[] = [];
+      for (const skill of skills) {
+        if (skill.isBuiltIn || this.pluginSkillIds.has(skill.id) || serverIds.has(skill.id)) continue;
+        const mtimeMs = this.getSkillMdMtime(skill.skillPath);
+        const cached = cache[skill.id];
+        if (!cached || cached.mtimeMs !== mtimeMs) {
+          // 未扫描或内容已变更：fail-closed，先拦截，异步扫描完成后刷新
+          skill.enabled = false;
+          skill.blocked = true;
+          skill.riskLevel = 'pending';
+          needScan.push(skill);
+          continue;
+        }
+        skill.riskLevel = cached.riskLevel;
+        if (BLOCKED_RISK_LEVELS.has(cached.riskLevel)) {
+          skill.enabled = false;
+          skill.blocked = true;
+        }
+      }
+      if (needScan.length > 0) {
+        void this.scanAndCacheSkills(needScan);
+      }
+    }
+
+    // 云端 skill 管控：on 强制开、off 强制关，覆盖本地开关与安全拦截（管理员解禁通道）
+    const controls = gsConfig?.skills;
+    if (controls) {
+      for (const skill of skills) {
+        const control = controls[skill.id];
+        if (control === 'on' || control === 'off') {
+          skill.enabled = control === 'on';
+          skill.locked = true;
+          if (control === 'on') skill.blocked = false;
+        }
+      }
+    }
+
     skills.sort((a, b) => {
       const orderA = defaults[a.id]?.order ?? 999;
       const orderB = defaults[b.id]?.order ?? 999;
@@ -1909,6 +1969,9 @@ export class SkillManager {
     auditReport?: SkillSecurityReport;
     pendingInstallId?: string;
   }> {
+    if (this.isExternalInstallBlocked()) {
+      return { success: false, error: t('skillErrInstallDisabledByPolicy') };
+    }
     let cleanupPath: string | null = null;
     try {
       const trimmed = source.trim();
@@ -2145,7 +2208,11 @@ export class SkillManager {
     error?: string;
     auditReport?: SkillSecurityReport;
     pendingInstallId?: string;
-  }> {    let cleanupPath: string | null = null;
+  }> {
+    if (this.isExternalInstallBlocked()) {
+      return { success: false, error: t('skillErrInstallDisabledByPolicy') };
+    }
+    let cleanupPath: string | null = null;
     try {
       console.log(`[SkillManager] starting upgrade for skill "${skillId}"`);
       const root = this.ensureSkillsRoot();
@@ -2308,6 +2375,10 @@ export class SkillManager {
     action: SecurityReportAction
   ): { success: boolean; skills?: SkillRecord[]; error?: string } {
     console.log(`[SkillManager] confirmPendingInstall: id=${pendingId}, action=${action}`);
+    // 策略可能在 pending 期间下发，确认环节兜底再查一次
+    if (action !== 'cancel' && this.isExternalInstallBlocked()) {
+      return { success: false, error: t('skillErrInstallDisabledByPolicy') };
+    }
     const pending = this.pendingInstalls.get(pendingId);
     if (!pending) {
       console.warn(`[SkillManager] Pending install not found: ${pendingId}`);
@@ -2534,6 +2605,64 @@ export class SkillManager {
 
   private isBuiltInSkillId(id: string): boolean {
     return this.listBuiltInSkillIds().has(id) || this.pluginSkillIds.has(id);
+  }
+
+  /** gsSkillSync 同步后记录服务端下发的 skill id 清单 */
+  recordServerSkillIds(ids: string[]): void {
+    this.getStore().set(GS_SERVER_SKILL_IDS_KEY, ids);
+  }
+
+  getServerSkillIds(): Set<string> {
+    const raw = this.getStore().get(GS_SERVER_SKILL_IDS_KEY) as string[] | undefined;
+    return new Set(Array.isArray(raw) ? raw : []);
+  }
+
+  private loadSkillScanCache(): SkillScanCache {
+    const raw = this.getStore().get(SKILL_SCAN_CACHE_KEY) as SkillScanCache | undefined;
+    return raw && typeof raw === 'object' ? raw : {};
+  }
+
+  private getSkillMdMtime(skillMdPath: string): number {
+    try {
+      return fs.statSync(skillMdPath).mtimeMs;
+    } catch {
+      return 0;
+    }
+  }
+
+  /** 加载时安全扫描（异步）：结果写缓存后广播 skills:changed 让界面刷新 */
+  private scanningSkillIds = new Set<string>();
+  private async scanAndCacheSkills(skills: SkillRecord[]): Promise<void> {
+    const targets = skills.filter(s => !this.scanningSkillIds.has(s.id));
+    if (targets.length === 0) return;
+    targets.forEach(s => this.scanningSkillIds.add(s.id));
+    try {
+      const dirs = targets.map(s => path.dirname(s.skillPath));
+      const reports = await scanMultipleSkillDirs(dirs);
+      const cache = this.loadSkillScanCache();
+      for (let i = 0; i < targets.length; i++) {
+        const skill = targets[i];
+        // scanMultipleSkillDirs 顺序扫描，返回与入参一一对应；无结果视为高危（fail-closed）
+        const riskLevel = reports[i]?.riskLevel ?? 'high';
+        cache[skill.id] = {
+          riskLevel,
+          mtimeMs: this.getSkillMdMtime(skill.skillPath),
+          scannedAt: Date.now(),
+        };
+        console.log(`[SkillManager] load-time scan: ${skill.id} -> ${riskLevel}`);
+      }
+      this.getStore().set(SKILL_SCAN_CACHE_KEY, cache);
+      this.notifySkillsChanged();
+    } catch (err) {
+      console.warn('[SkillManager] load-time scan failed:', err);
+    } finally {
+      targets.forEach(s => this.scanningSkillIds.delete(s.id));
+    }
+  }
+
+  /** 企业策略：是否禁止安装外部 skill */
+  private isExternalInstallBlocked(): boolean {
+    return getGsClientConfig()?.permissions?.allowExternalSkillInstall === false;
   }
 
   private loadSkillStateMap(): SkillStateMap {

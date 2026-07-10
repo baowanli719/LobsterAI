@@ -2,11 +2,19 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export type GsSettingsPageMode = 'hidden' | 'readonly' | 'editable';
 
+export type GsSkillControl = 'on' | 'off';
+
 export interface GsClientConfig {
   version: number;
   features: { customModel: boolean };
   settingsPages: Record<string, GsSettingsPageMode>;
-  permissions: { allowSubmit: boolean };
+  permissions: {
+    allowSubmit: boolean;
+    /** 是否允许安装外部 skill；老服务端可能不下发 */
+    allowExternalSkillInstall?: boolean;
+  };
+  /** 云端 skill 管控表（按 skill id）；老服务端可能不下发 */
+  skills?: Record<string, GsSkillControl>;
 }
 
 export interface GsUser {

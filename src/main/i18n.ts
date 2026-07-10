@@ -87,6 +87,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     execApprovalDenied: '用户已拒绝执行该命令。',
 
     // Skill manager errors
+    skillErrInstallDisabledByPolicy: '企业策略已禁止安装外部技能，请联系管理员。',
     skillErrNoSkillMd: '来源中未找到 SKILL.md',
     skillErrInvalidSource:
       '无效的技能来源。支持 owner/repo、仓库链接、npm 包名、ClawHub 链接或 GitHub tree/blob 链接。',
@@ -373,6 +374,7 @@ const translations: Record<LanguageType, Record<string, string>> = {
     execApprovalDenied: 'The user denied the command execution.',
 
     // Skill manager errors
+    skillErrInstallDisabledByPolicy: 'Installing external skills is disabled by enterprise policy. Please contact your administrator.',
     skillErrNoSkillMd: 'No SKILL.md found in source',
     skillErrInvalidSource:
       'Invalid skill source. Use owner/repo, repo URL, npm package spec, ClawHub URL, or a GitHub tree/blob URL.',

@@ -21,6 +21,37 @@ interface ServerSkill {
 interface SkillManagerLike {
   getSkillsRoot(): string;
   setSkillEnabled(id: string, enabled: boolean): unknown;
+  listSkills(): Array<{ id: string; name: string; isBuiltIn: boolean; riskLevel?: string }>;
+  recordServerSkillIds(ids: string[]): void;
+  getServerSkillIds(): Set<string>;
+}
+
+/**
+ * 上报本机已安装的 skill（id/name/source/riskLevel）给服务端，
+ * 供管理端"Skill 管控"页做勾选项并展示扫描风险。
+ * fire-and-forget：失败静默，不影响主流程。
+ */
+async function reportInstalledSkills(
+  skillManager: SkillManagerLike,
+  ctx: { baseUrl: string; token: string },
+): Promise<void> {
+  try {
+    const serverIds = skillManager.getServerSkillIds();
+    const skills = skillManager.listSkills().map((s) => ({
+      id: s.id,
+      name: s.name,
+      source: s.isBuiltIn ? 'builtin' : serverIds.has(s.id) ? 'server' : 'local',
+      riskLevel: s.riskLevel ?? '',
+    }));
+    if (skills.length === 0) return;
+    await fetch(`${ctx.baseUrl}/api/skills/report-installed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.token}` },
+      body: JSON.stringify({ skills }),
+    });
+  } catch (err) {
+    console.warn('[gsSkillSync] 上报已安装 skill 失败:', (err as Error).message);
+  }
 }
 
 const parseVersion = (v: string): number[] =>
@@ -65,6 +96,12 @@ export async function syncServerSkills(skillManager: SkillManagerLike): Promise<
     if (!listRes.ok) return;
     const body = (await listRes.json()) as { skills?: ServerSkill[] };
     const skills = Array.isArray(body.skills) ? body.skills : [];
+    // 记录服务端下发清单：加载白名单据此区分"服务端 skill"和来路不明的野包
+    try {
+      skillManager.recordServerSkillIds(skills.map((s) => s.name).filter(Boolean));
+    } catch (err) {
+      console.warn('[gsSkillSync] 记录服务端 skill 清单失败:', (err as Error).message);
+    }
     if (skills.length === 0) return;
 
     const root = skillManager.getSkillsRoot();
@@ -101,5 +138,7 @@ export async function syncServerSkills(skillManager: SkillManagerLike): Promise<
     console.warn('[gsSkillSync] 拉取 skill 列表失败:', (err as Error).message);
   } finally {
     syncing = false;
+    // 无论服务端有无上传 skill，都上报一次本机已安装列表（含内置 skill）
+    await reportInstalledSkills(skillManager, { baseUrl: ctx.baseUrl, token: ctx.token });
   }
 }

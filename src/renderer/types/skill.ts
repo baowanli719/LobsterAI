@@ -10,6 +10,9 @@ export interface Skill {
   prompt: string;         // SKILL.md body for management; do not inline into Cowork prompts
   skillPath: string;      // Absolute path to SKILL.md
   version?: string;       // Skill version from SKILL.md frontmatter
+  locked?: boolean;       // Forced on/off by cloud config; user cannot change the toggle
+  blocked?: boolean;      // Blocked by local security scan (high-risk); admin can unblock via cloud
+  riskLevel?: string;     // Security scan result: safe/low/medium/high/critical; pending=scanning
 }
 
 export type LocalizedText = { en: string; zh: string };

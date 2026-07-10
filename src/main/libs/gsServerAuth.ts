@@ -19,11 +19,20 @@ import type { SqliteStore } from '../sqliteStore';
 
 export type GsSettingsPageMode = 'hidden' | 'readonly' | 'editable';
 
+/** 云端对某个 skill 的强制管控：on 强制开启、off 强制关闭；未列出的 skill 不受管控 */
+export type GsSkillControl = 'on' | 'off';
+
 export interface GsClientConfig {
   version: number;
   features: { customModel: boolean };
   settingsPages: Record<string, GsSettingsPageMode>;
-  permissions: { allowSubmit: boolean };
+  permissions: {
+    allowSubmit: boolean;
+    /** 是否允许安装外部 skill；false 时封锁安装通道并对野包做加载扫描拦截。老服务端可能不下发 */
+    allowExternalSkillInstall?: boolean;
+  };
+  /** 云端 skill 管控表（按 skill id）；老服务端可能不下发，消费方需容错 */
+  skills?: Record<string, GsSkillControl>;
 }
 
 export interface GsUser {
@@ -136,6 +145,15 @@ const triggerPostSync = (): void => {
 /** 供 skill 同步等模块读取当前登录上下文 */
 export function getGsAuthContext(): { enabled: boolean; baseUrl: string; token: string | null; isLoggedIn: boolean } {
   return { enabled: state.enabled, baseUrl, token, isLoggedIn: state.isLoggedIn };
+}
+
+/**
+ * 供主进程（如 skillManager）读取当前生效的云端配置。
+ * 未启用 GS 对接或未登录时返回 null，调用方据此判断是否套用 skill 管控。
+ */
+export function getGsClientConfig(): GsClientConfig | null {
+  if (!state.enabled || !state.isLoggedIn) return null;
+  return state.config;
 }
 
 /** 拉取最新配置。鉴权失败 → 登出；网络失败 → online=false 并保留缓存配置。 */
