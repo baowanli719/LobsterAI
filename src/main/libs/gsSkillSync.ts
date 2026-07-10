@@ -5,6 +5,7 @@
  * 只同步服务端上传的 skill；内置 skill 走安装包，不受影响。
  * 全程 fire-and-forget，失败静默，离线用本地已有。
  */
+import crypto from 'crypto';
 import extract from 'extract-zip';
 import fs from 'fs';
 import os from 'os';
@@ -21,13 +22,23 @@ interface ServerSkill {
 interface SkillManagerLike {
   getSkillsRoot(): string;
   setSkillEnabled(id: string, enabled: boolean): unknown;
-  listSkills(): Array<{ id: string; name: string; isBuiltIn: boolean; riskLevel?: string }>;
+  listSkills(): Array<{ id: string; name: string; isBuiltIn: boolean; riskLevel?: string; skillPath?: string }>;
   recordServerSkillIds(ids: string[]): void;
   getServerSkillIds(): Set<string>;
 }
 
+/** SKILL.md 的 SHA-256 内容指纹；服务端据此发现"已确认的 skill 内容被改过"并重新标记待确认。读不到返回空串 */
+function hashSkillMd(skillMdPath?: string): string {
+  try {
+    if (!skillMdPath) return '';
+    return crypto.createHash('sha256').update(fs.readFileSync(skillMdPath)).digest('hex');
+  } catch {
+    return '';
+  }
+}
+
 /**
- * 上报本机已安装的 skill（id/name/source/riskLevel）给服务端，
+ * 上报本机已安装的 skill（id/name/source/riskLevel/contentHash）给服务端，
  * 供管理端"Skill 管控"页做勾选项并展示扫描风险。
  * fire-and-forget：失败静默，不影响主流程。
  */
@@ -42,6 +53,7 @@ async function reportInstalledSkills(
       name: s.name,
       source: s.isBuiltIn ? 'builtin' : serverIds.has(s.id) ? 'server' : 'local',
       riskLevel: s.riskLevel ?? '',
+      contentHash: hashSkillMd(s.skillPath),
     }));
     if (skills.length === 0) return;
     await fetch(`${ctx.baseUrl}/api/skills/report-installed`, {
