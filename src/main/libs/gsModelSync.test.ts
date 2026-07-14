@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { isDeepSubset } from './gsModelSync';
+import { isDeepSubset, pruneCloudProviders } from './gsModelSync';
 import { buildAppConfigModelPatch } from './modelConfigTransform';
 
 describe('buildAppConfigModelPatch', () => {
@@ -83,5 +83,60 @@ describe('isDeepSubset', () => {
       'p/m',
     )!;
     expect(isDeepSubset(changed, appConfig)).toBe(false);
+  });
+});
+
+describe('pruneCloudProviders', () => {
+  const appConfig = {
+    theme: 'dark',
+    providers: {
+      cloudA: { enabled: true, apiKey: 'ka', baseUrl: 'https://a', apiFormat: 'anthropic', models: [{ id: 'm-a', name: 'A', supportsImage: false }] },
+      cloudB: { enabled: true, apiKey: 'kb', baseUrl: 'https://b', apiFormat: 'openai', models: [{ id: 'm-b', name: 'B', supportsImage: false }] },
+    },
+    model: {
+      availableModels: [
+        { id: 'm-a', name: 'A', provider: 'cloudA', providerKey: 'cloudA' },
+        { id: 'm-b', name: 'B', provider: 'cloudB', providerKey: 'cloudB' },
+      ],
+      defaultModel: 'm-a',
+      defaultModelProvider: 'cloudA',
+    },
+    api: { key: 'ka', baseUrl: 'https://a' },
+  };
+
+  test('removes only the listed provider ids and their models', () => {
+    const result = pruneCloudProviders(appConfig, ['cloudB']) as typeof appConfig;
+    expect(Object.keys(result.providers)).toEqual(['cloudA']);
+    expect(result.model.availableModels).toHaveLength(1);
+    expect(result.model.availableModels[0].id).toBe('m-a');
+    // 默认模型未受影响的 provider 保持不变
+    expect(result.model.defaultModel).toBe('m-a');
+    expect(result.model.defaultModelProvider).toBe('cloudA');
+    expect(result.theme).toBe('dark'); // 无关字段原样保留
+  });
+
+  test('falls back to a remaining provider when the default model is removed', () => {
+    const result = pruneCloudProviders(appConfig, ['cloudA']) as typeof appConfig;
+    expect(Object.keys(result.providers)).toEqual(['cloudB']);
+    expect(result.model.defaultModel).toBe('m-b');
+    expect(result.model.defaultModelProvider).toBe('cloudB');
+    expect(result.api).toEqual({ key: 'kb', baseUrl: 'https://b' });
+  });
+
+  test('removing all providers clears the model list and keeps unrelated fields', () => {
+    const result = pruneCloudProviders(appConfig, ['cloudA', 'cloudB']) as typeof appConfig;
+    expect(Object.keys(result.providers)).toHaveLength(0);
+    expect(result.model.availableModels).toHaveLength(0);
+    expect(result.model.defaultModel).toBe('');
+    expect(result.model.defaultModelProvider).toBe('');
+  });
+
+  test('does not touch providers not in the removal list (user-added custom models)', () => {
+    const withUserProvider = {
+      ...appConfig,
+      providers: { ...appConfig.providers, userLocal: { enabled: true, apiKey: '', baseUrl: 'https://local', apiFormat: 'openai', models: [] } },
+    };
+    const result = pruneCloudProviders(withUserProvider, ['cloudA', 'cloudB']) as typeof withUserProvider;
+    expect(Object.keys(result.providers)).toEqual(['userLocal']);
   });
 });

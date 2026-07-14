@@ -1,3 +1,4 @@
+import { InformationCircleIcon } from '@heroicons/react/20/solid';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -62,7 +63,7 @@ const GsNoticeBanner: React.FC = () => {
 
   return (
     <div className="flex items-center gap-2 h-8 px-3 shrink-0 border-t border-border bg-surface-raised text-[13px] text-foreground/90">
-      <span className="shrink-0" aria-hidden="true">📢</span>
+      <InformationCircleIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
       <div className="flex-1 min-w-0 overflow-hidden">
         <span
           className="gs-notice-marquee"
