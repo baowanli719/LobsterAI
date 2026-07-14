@@ -70,6 +70,19 @@ export interface GsClientConfig {
   models?: GsModelsConfig | null;
   /** 应用更新配置；null/缺省 = 不下发，客户端不提示更新。老服务端不下发 */
   appUpdate?: GsAppUpdateConfig | null;
+  /** 通知公告；null/缺省 = 不下发。渲染进程消费，底部滚动横幅展示。老服务端不下发 */
+  notice?: GsNoticeConfig | null;
+}
+
+/** 服务端下发的通知公告（客户端底部滚动横幅） */
+export interface GsNoticeConfig {
+  text: string;
+  /** 展示开始时间（ISO 8601）；缺省 = 立即展示 */
+  startAt?: string;
+  /** 展示结束时间（ISO 8601）；缺省 = 一直展示 */
+  endAt?: string;
+  /** 是否允许用户手动关闭；默认 true */
+  dismissible?: boolean;
 }
 
 export interface GsUser {
@@ -192,8 +205,8 @@ const triggerPostSync = (): void => {
 };
 
 /** 供 skill 同步等模块读取当前登录上下文 */
-export function getGsAuthContext(): { enabled: boolean; baseUrl: string; token: string | null; isLoggedIn: boolean } {
-  return { enabled: state.enabled, baseUrl, token, isLoggedIn: state.isLoggedIn };
+export function getGsAuthContext(): { enabled: boolean; baseUrl: string; token: string | null; isLoggedIn: boolean; user: GsUser | null } {
+  return { enabled: state.enabled, baseUrl, token, isLoggedIn: state.isLoggedIn, user: state.user };
 }
 
 /**

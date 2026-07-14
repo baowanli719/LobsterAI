@@ -40,11 +40,13 @@ function hashSkillMd(skillMdPath?: string): string {
 /**
  * 上报本机已安装的 skill（id/name/source/riskLevel/contentHash）给服务端，
  * 供管理端"Skill 管控"页做勾选项并展示扫描风险。
+ * 附带当前登录用户（userId/username），服务端按用户记录安装明细供多用户展示；
+ * 服务端以 token 里的身份为准，这里带上只为日志排查直观。
  * fire-and-forget：失败静默，不影响主流程。
  */
 async function reportInstalledSkills(
   skillManager: SkillManagerLike,
-  ctx: { baseUrl: string; token: string },
+  ctx: { baseUrl: string; token: string; user?: { id: number; username: string } | null },
 ): Promise<void> {
   try {
     const serverIds = skillManager.getServerSkillIds();
@@ -59,7 +61,11 @@ async function reportInstalledSkills(
     await fetch(`${ctx.baseUrl}/api/skills/report-installed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.token}` },
-      body: JSON.stringify({ skills }),
+      body: JSON.stringify({
+        userId: ctx.user?.id ?? null,
+        username: ctx.user?.username ?? '',
+        skills,
+      }),
     });
   } catch (err) {
     console.warn('[gsSkillSync] 上报已安装 skill 失败:', (err as Error).message);
@@ -151,6 +157,6 @@ export async function syncServerSkills(skillManager: SkillManagerLike): Promise<
   } finally {
     syncing = false;
     // 无论服务端有无上传 skill，都上报一次本机已安装列表（含内置 skill）
-    await reportInstalledSkills(skillManager, { baseUrl: ctx.baseUrl, token: ctx.token });
+    await reportInstalledSkills(skillManager, { baseUrl: ctx.baseUrl, token: ctx.token, user: ctx.user });
   }
 }

@@ -447,6 +447,28 @@ body {
   }
 }
 
+/* 服务端下发公告的底部滚动横幅：文本从右侧进入、滚出左侧后循环 */
+.gs-notice-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: gs-notice-scroll linear infinite;
+  will-change: transform;
+}
+
+.gs-notice-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes gs-notice-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dreaming-scene-star,
   .dreaming-mascot-glow,

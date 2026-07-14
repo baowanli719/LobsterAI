@@ -18,6 +18,7 @@ import CoworkPermissionModal from './components/cowork/CoworkPermissionModal';
 import CoworkQuestionWizard from './components/cowork/CoworkQuestionWizard';
 import EngineStartupOverlay from './components/cowork/EngineStartupOverlay';
 import GsLoginDialog from './components/GsLoginDialog';
+import GsNoticeBanner from './components/GsNoticeBanner';
 import KitsView from './components/kits/KitsView';
 import KnowledgeBaseView from './components/kits/KnowledgeBaseView';
 import { McpView } from './components/mcp';
@@ -1076,6 +1077,8 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* 服务端下发的通知公告，底部滚动横幅 */}
+      <GsNoticeBanner />
 
       {/* 设置窗口显示在所有主内容之上，但不影响主界面的交互 */}
       {showSettings && (
