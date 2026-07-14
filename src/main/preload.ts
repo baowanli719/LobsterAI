@@ -121,12 +121,24 @@ contextBridge.exposeInMainWorld('electron', {
     setServerUrl: (url: string) => ipcRenderer.invoke('gsAuth:setServerUrl', { url }),
     changePassword: (oldPassword: string, newPassword: string) =>
       ipcRenderer.invoke('gsAuth:changePassword', { oldPassword, newPassword }),
+    wecomAvailable: () => ipcRenderer.invoke('gsAuth:wecomAvailable'),
+    wecomLogin: () => ipcRenderer.invoke('gsAuth:wecomLogin'),
+    getLoginMethods: () => ipcRenderer.invoke('gsAuth:getLoginMethods'),
+    emailSendCode: (account: string) => ipcRenderer.invoke('gsAuth:emailSendCode', { account }),
+    emailLogin: (account: string, code: string) =>
+      ipcRenderer.invoke('gsAuth:emailLogin', { account, code }),
     logChat: (payload: { sessionId?: string; model?: string; promptSummary?: string }) =>
       ipcRenderer.invoke('gsAuth:logChat', payload),
     onStateChanged: (callback: (state: unknown) => void) => {
       const handler = (_event: unknown, state: unknown) => callback(state);
       ipcRenderer.on('gsAuth:stateChanged', handler);
       return () => ipcRenderer.removeListener('gsAuth:stateChanged', handler);
+    },
+    // 云端模型配置写入 app_config 后触发，渲染进程据此重载模型列表
+    onModelsApplied: (callback: () => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('gsAuth:modelsApplied', handler);
+      return () => ipcRenderer.removeListener('gsAuth:modelsApplied', handler);
     },
   },
   api: {

@@ -31,7 +31,6 @@ import AppUpdateBadge from './components/update/AppUpdateBadge';
 import AppUpdateModal from './components/update/AppUpdateModal';
 import WindowTitleBar from './components/window/WindowTitleBar';
 import { defaultConfig, getProviderDisplayName, ShortcutAction } from './config';
-import type { ApiConfig } from './services/api';
 import { apiService } from './services/api';
 import { authService } from './services/auth';
 import { configService } from './services/config';
@@ -173,6 +172,47 @@ const App: React.FC = () => {
     []
   );
 
+  // 从 app_config 构建模型列表并同步到 redux / apiService。
+  // 三个调用点：启动初始化、关闭设置页、云端模型配置下发（gsAuth:modelsApplied）。
+  const applyModelsFromConfig = useCallback(
+    (config: ReturnType<typeof configService.getConfig>, options?: { updateDefault?: boolean }) => {
+      apiService.setConfig({
+        apiKey: config.api.key,
+        baseUrl: config.api.baseUrl,
+      });
+
+      const providerModels: { id: string; name: string; provider?: string; providerKey?: string; openClawProviderId?: string; supportsImage?: boolean }[] = [];
+      if (config.providers) {
+        Object.entries(config.providers).forEach(([providerName, providerConfig]) => {
+          if (providerConfig.enabled && providerConfig.models) {
+            const openClawProviderId = getOpenClawProviderIdForConfig(providerName, providerConfig);
+            providerConfig.models.forEach((model: { id: string; name: string; supportsImage?: boolean }) => {
+              providerModels.push({
+                id: model.id,
+                name: model.name,
+                provider: getProviderDisplayName(providerName, providerConfig),
+                providerKey: providerName,
+                openClawProviderId,
+                supportsImage: model.supportsImage ?? false,
+              });
+            });
+          }
+        });
+      }
+      dispatch(setAvailableModels(providerModels));
+
+      if (options?.updateDefault && providerModels.length > 0) {
+        const allModels = store.getState().model.availableModels;
+        const preferredModel = allModels.find(
+          model => model.id === config.model.defaultModel
+            && (!config.model.defaultModelProvider || model.providerKey === config.model.defaultModelProvider)
+        ) ?? allModels[0];
+        dispatch(setDefaultSelectedModel(preferredModel));
+      }
+    },
+    [dispatch],
+  );
+
   // 初始化应用
   useEffect(() => {
     if (hasInitialized.current) {
@@ -219,40 +259,7 @@ const App: React.FC = () => {
         await gsAuthService.init();
         mark('gsAuthService.init done');
 
-        const config = await configService.getConfig();
-        const apiConfig: ApiConfig = {
-          apiKey: config.api.key,
-          baseUrl: config.api.baseUrl,
-        };
-        apiService.setConfig(apiConfig);
-
-        const providerModels: { id: string; name: string; provider?: string; providerKey?: string; openClawProviderId?: string; supportsImage?: boolean }[] = [];
-        if (config.providers) {
-          Object.entries(config.providers).forEach(([providerName, providerConfig]) => {
-            if (providerConfig.enabled && providerConfig.models) {
-              const openClawProviderId = getOpenClawProviderIdForConfig(providerName, providerConfig);
-              providerConfig.models.forEach((model: { id: string; name: string; supportsImage?: boolean }) => {
-                providerModels.push({
-                  id: model.id,
-                  name: model.name,
-                  provider: getProviderDisplayName(providerName, providerConfig),
-                  providerKey: providerName,
-                  openClawProviderId,
-                  supportsImage: model.supportsImage ?? false,
-                });
-              });
-            }
-          });
-        }
-        dispatch(setAvailableModels(providerModels));
-        if (providerModels.length > 0) {
-          const allModels = store.getState().model.availableModels;
-          const preferredModel = allModels.find(
-            model => model.id === config.model.defaultModel
-              && (!config.model.defaultModelProvider || model.providerKey === config.model.defaultModelProvider)
-          ) ?? allModels[0];
-          dispatch(setDefaultSelectedModel(preferredModel));
-        }
+        applyModelsFromConfig(configService.getConfig(), { updateDefault: true });
         mark('model resolution done');
 
         const agreed = await window.electron.store.get('privacy_agreed');
@@ -278,7 +285,21 @@ const App: React.FC = () => {
     };
 
     void initializeApp();
-  }, [dispatch, waitWithTimeout]);
+  }, [dispatch, waitWithTimeout, applyModelsFromConfig]);
+
+  // 云端模型配置写入 app_config 后（主进程 gsModelSync 广播），重载配置并刷新模型列表
+  useEffect(() => {
+    const removeListener = window.electron.gsAuth.onModelsApplied?.(() => {
+      void (async () => {
+        console.log('[App] cloud model config applied, reloading model list');
+        await configService.init(); // 重新从主进程 store 读取 app_config
+        applyModelsFromConfig(configService.getConfig(), { updateDefault: true });
+        // 让 CoworkPromptInput 等监听方与设置页保持同步
+        window.dispatchEvent(new CustomEvent('config-updated'));
+      })();
+    });
+    return removeListener;
+  }, [applyModelsFromConfig]);
 
   useEffect(() => {
     const unsubscribe = i18nService.subscribe(() => {
@@ -574,31 +595,7 @@ const App: React.FC = () => {
 
   const handleCloseSettings = () => {
     setShowSettings(false);
-    const config = configService.getConfig();
-    apiService.setConfig({
-      apiKey: config.api.key,
-      baseUrl: config.api.baseUrl,
-    });
-
-    if (config.providers) {
-      const allModels: { id: string; name: string; provider?: string; providerKey?: string; openClawProviderId?: string; supportsImage?: boolean }[] = [];
-      Object.entries(config.providers).forEach(([providerName, providerConfig]) => {
-        if (providerConfig.enabled && providerConfig.models) {
-          const openClawProviderId = getOpenClawProviderIdForConfig(providerName, providerConfig);
-          providerConfig.models.forEach((model: { id: string; name: string; supportsImage?: boolean }) => {
-            allModels.push({
-              id: model.id,
-              name: model.name,
-              provider: getProviderDisplayName(providerName, providerConfig),
-              providerKey: providerName,
-              openClawProviderId,
-              supportsImage: model.supportsImage ?? false,
-            });
-          });
-        }
-      });
-      dispatch(setAvailableModels(allModels));
-    }
+    applyModelsFromConfig(configService.getConfig());
   };
 
   const isShortcutInputActive = () => {

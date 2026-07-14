@@ -1,6 +1,7 @@
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import React, { useState } from 'react';
 
+import { resolveGsErrorText } from '../services/gsAuth';
 import { i18nService } from '../services/i18n';
 import Modal from './common/Modal';
 import GsPasswordInput from './GsPasswordInput';
@@ -39,7 +40,7 @@ const GsChangePasswordDialog: React.FC<GsChangePasswordDialogProps> = ({ onClose
       setDone(true);
       setTimeout(onClose, 1200);
     } else {
-      setError(result.message || i18nService.t('gsChangePasswordFailed'));
+      setError(resolveGsErrorText(result.message, 'gsChangePasswordFailed'));
     }
   };
 

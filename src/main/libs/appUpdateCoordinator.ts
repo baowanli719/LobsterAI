@@ -15,12 +15,52 @@ import {
 import type { SqliteStore } from '../sqliteStore';
 import { cancelActiveDownload, downloadUpdate, installUpdate } from './appUpdateInstaller';
 import { getFallbackDownloadUrl, getManualUpdateCheckUrl, getUpdateCheckUrl } from './endpoints';
+import { getGsClientConfig,type GsAppUpdateConfig } from './gsServerAuth';
 import { getKeyfromAttribution } from './keyfromAttribution';
 
-// 公司版：暂时禁用「联网检查更新」。当前更新地址仍指向外网（youdao），会误报
-// “有新版本”。以后改为公司内网更新服务后，把此开关设为 true，并在 endpoints.ts 的
-// getUpdateCheckUrl / getManualUpdateCheckUrl 中配置内网地址即可恢复。
+// 公司版：禁用原「联网检查更新」（更新地址指向有道外网，会误报）。
+// 更新信息改由 GS 企业服务端配置下发（GsClientConfig.appUpdate），
+// 服务端配置了 appUpdate 时走 GS 通道，否则维持禁用状态。
 const ONLINE_UPDATE_CHECK_ENABLED: boolean = false;
+
+/**
+ * 服务端下发的下载时间管控：availableFrom 之前不自动下载；
+ * downloadWindow 限定每日自动下载时段（本地时间，start > end 表示跨零点，如 20:00-06:00）。
+ * 字段缺失或格式非法时按不限制处理。导出仅为测试。
+ */
+export function isWithinDownloadSchedule(
+  schedule: Pick<GsAppUpdateConfig, 'availableFrom' | 'downloadWindow'>,
+  now: Date,
+): boolean {
+  if (schedule.availableFrom) {
+    const availableAt = Date.parse(schedule.availableFrom);
+    if (!Number.isNaN(availableAt) && now.getTime() < availableAt) {
+      return false;
+    }
+  }
+
+  const window = schedule.downloadWindow;
+  if (window?.start && window?.end) {
+    const toMinutes = (value: string): number | null => {
+      const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      return hours <= 23 && minutes <= 59 ? hours * 60 + minutes : null;
+    };
+    const start = toMinutes(window.start);
+    const end = toMinutes(window.end);
+    if (start !== null && end !== null && start !== end) {
+      const current = now.getHours() * 60 + now.getMinutes();
+      const inWindow = start < end
+        ? current >= start && current < end
+        : current >= start || current < end;
+      if (!inWindow) return false;
+    }
+  }
+
+  return true;
+}
 
 type ChangeLogLang = {
   title?: string;
@@ -96,6 +136,32 @@ export class AppUpdateCoordinator {
     this.autoOpenReadyModal = false;
   }
 
+  /**
+   * GS 配置刷新（登录成功/每 5 分钟/窗口聚焦）后的更新检查入口。
+   * 相比直接 checkNow 多了跳过条件：版本没变且已就绪/下载中时不重复检查，
+   * 避免每次刷新都对几百 MB 的安装包重做哈希校验。
+   */
+  async checkFromGsConfigRefresh(): Promise<void> {
+    const gsVersion = this.getGsAppUpdateConfig()?.version.trim() ?? null;
+    if (!gsVersion) {
+      // 服务端停止下发或已登出：有残留的更新状态时清理一次，否则无事可做
+      if (this.state.status !== AppUpdateStatus.Idle) {
+        await this.checkNow();
+      }
+      return;
+    }
+    if (
+      this.state.status === AppUpdateStatus.Downloading ||
+      this.state.status === AppUpdateStatus.Installing
+    ) {
+      return;
+    }
+    if (this.state.status === AppUpdateStatus.Ready && this.state.info?.latestVersion === gsVersion) {
+      return;
+    }
+    await this.checkNow();
+  }
+
   async checkNow(options?: { manual?: boolean; userId?: string | null }): Promise<AppUpdateCheckResult> {
     const targetSource = options?.manual === true ? AppUpdateSource.Manual : AppUpdateSource.Auto;
     console.log(
@@ -107,9 +173,9 @@ export class AppUpdateCoordinator {
       return { success: true, state, updateFound: false };
     }
 
-    // 公司版：联网检查更新已禁用（见 ONLINE_UPDATE_CHECK_ENABLED）。
-    if (!ONLINE_UPDATE_CHECK_ENABLED) {
-      console.log('[AppUpdate] online update check disabled (pending internal update endpoint)');
+    // 公司版：外网检查更新已禁用；只有 GS 服务端下发了 appUpdate 配置时才继续走检查流程。
+    if (!ONLINE_UPDATE_CHECK_ENABLED && !this.getGsAppUpdateConfig()) {
+      console.log('[AppUpdate] update check disabled (no GS appUpdate config and online check off)');
       const state = this.resetToIdle();
       return { success: true, state, updateFound: false };
     }
@@ -234,6 +300,22 @@ export class AppUpdateCoordinator {
       }
 
       if (options?.manual === true) {
+        const state = this.setState({
+          status: AppUpdateStatus.Available,
+          source: targetSource,
+          info,
+          progress: null,
+          readyFilePath: null,
+          readyFileHash: null,
+          errorMessage: null,
+        });
+        return { success: true, state, updateFound };
+      }
+
+      // 服务端限定的可下载时间未到：先提醒（Available），后续检查（配置每 5 分钟
+      // 刷新会触发）到点后自动开始下载；用户手动点下载不受此限。
+      if (!this.isAutoDownloadAllowedNow()) {
+        console.log('[AppUpdate] update found but outside server download schedule, deferring auto download');
         const state = this.setState({
           status: AppUpdateStatus.Available,
           source: targetSource,
@@ -484,11 +566,71 @@ export class AppUpdateCoordinator {
     }
   }
 
+  /** 读取 GS 服务端下发的应用更新配置；未启用/未登录/未下发时返回 null */
+  private getGsAppUpdateConfig(): GsAppUpdateConfig | null {
+    const appUpdate = getGsClientConfig()?.appUpdate;
+    if (!appUpdate || typeof appUpdate.version !== 'string' || !appUpdate.version.trim()) {
+      return null;
+    }
+    return appUpdate;
+  }
+
+  /** 自动下载是否在服务端限定的时间内；无 GS 配置（外网通道）时不限制 */
+  private isAutoDownloadAllowedNow(): boolean {
+    const config = this.getGsAppUpdateConfig();
+    if (!config) return true;
+    return isWithinDownloadSchedule(config, new Date());
+  }
+
+  /** 把 GS 服务端下发的更新配置转换成 AppUpdateInfo；不是新版本或没有本平台下载地址时返回 null */
+  private buildGsUpdateInfo(config: GsAppUpdateConfig, currentVersion: string): AppUpdateInfo | null {
+    const latestVersion = config.version.trim();
+    if (!this.isNewerVersion(latestVersion, currentVersion)) {
+      console.log(
+        `[AppUpdate] no update from GS config, latestVersion=${latestVersion}, currentVersion=${currentVersion}`,
+      );
+      return null;
+    }
+
+    const downloads = config.downloads ?? {};
+    let url = '';
+    if (process.platform === 'darwin') {
+      url = (process.arch === 'arm64' ? downloads.macArm : downloads.macIntel)?.trim() ?? '';
+    } else if (process.platform === 'win32') {
+      url = downloads.windowsX64?.trim() ?? '';
+    }
+    if (!url) {
+      console.log(`[AppUpdate] GS config has no download url for platform ${process.platform}, skipping`);
+      return null;
+    }
+
+    const notes = Array.isArray(config.notes)
+      ? config.notes.filter((line): line is string => typeof line === 'string' && line.trim().length > 0)
+      : [];
+    const entry = { title: '', content: notes };
+    const info: AppUpdateInfo = {
+      latestVersion,
+      date: '',
+      changeLog: { zh: entry, en: { ...entry, content: [...notes] } },
+      url,
+    };
+    console.log(
+      `[AppUpdate] GS update available: ${currentVersion} -> ${latestVersion}, downloadUrl=${url}`,
+    );
+    return info;
+  }
+
   private async fetchUpdateInfo(
     currentVersion: string,
     manual: boolean,
     userId?: string | null,
   ): Promise<AppUpdateInfo | null> {
+    // GS 服务端下发了更新配置时优先用它（企业内网通道），不再访问外网检查接口
+    const gsConfig = this.getGsAppUpdateConfig();
+    if (gsConfig) {
+      return this.buildGsUpdateInfo(gsConfig, currentVersion);
+    }
+
     const baseUrl = manual ? getManualUpdateCheckUrl() : getUpdateCheckUrl();
     const qs = this.getUpdateQueryString(userId, currentVersion);
     const url = qs ? `${baseUrl}?${qs}` : baseUrl;

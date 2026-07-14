@@ -15,6 +15,16 @@ export interface GsClientConfig {
   };
   /** 云端 skill 管控表（按 skill id）；老服务端可能不下发 */
   skills?: Record<string, GsSkillControl>;
+  /** 云端模型配置（主进程消费，写入 app_config）；null/缺省 = 不下发 */
+  models?: {
+    providers: Record<string, {
+      baseUrl: string;
+      api: string;
+      apiKey?: string;
+      models: Array<{ id: string; name?: string; input?: string[] }>;
+    }>;
+    defaultPrimary?: string;
+  } | null;
 }
 
 export interface GsUser {

@@ -1451,10 +1451,19 @@ interface IElectronAPI {
     refresh: () => Promise<import('../store/slices/gsAuthSlice').GsAuthState>;
     setServerUrl: (url: string) => Promise<{ success: boolean; message?: string }>;
     changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+    wecomAvailable: () => Promise<boolean>;
+    wecomLogin: () => Promise<{ success: boolean; message?: string }>;
+    getLoginMethods: () => Promise<{ password: boolean; wecom: boolean; email: boolean }>;
+    emailSendCode: (
+      account: string,
+    ) => Promise<{ success: boolean; maskedEmail?: string; resendIn?: number; message?: string }>;
+    emailLogin: (account: string, code: string) => Promise<{ success: boolean; message?: string }>;
     logChat: (payload: { sessionId?: string; model?: string; promptSummary?: string }) => Promise<void>;
     onStateChanged: (
       callback: (state: import('../store/slices/gsAuthSlice').GsAuthState) => void,
     ) => () => void;
+    /** 云端模型配置已写入 app_config，渲染进程应重载模型列表 */
+    onModelsApplied: (callback: () => void) => () => void;
   };
   networkStatus: {
     send: (status: 'online' | 'offline') => void;

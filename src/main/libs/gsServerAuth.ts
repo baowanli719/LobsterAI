@@ -12,7 +12,7 @@
  * 配置刷新时机：登录成功时、窗口聚焦时（30 秒节流）、每 5 分钟定时。
  * 服务端不可达时保留最近一次成功拉取的配置（离线兜底），并置 online=false。
  */
-import { app, ipcMain, webContents } from 'electron';
+import { app, BrowserWindow, ipcMain, webContents } from 'electron';
 
 import { branding } from '../../shared/branding';
 import type { SqliteStore } from '../sqliteStore';
@@ -21,6 +21,39 @@ export type GsSettingsPageMode = 'hidden' | 'readonly' | 'editable';
 
 /** 云端对某个 skill 的强制管控：on 强制开启、off 强制关闭；未列出的 skill 不受管控 */
 export type GsSkillControl = 'on' | 'off';
+
+/** 云端下发的模型配置，结构与 openclaw.json 的 models.providers 对齐 */
+export interface GsModelsConfig {
+  providers: Record<string, {
+    baseUrl: string;
+    api: string;
+    apiKey?: string;
+    models: Array<{ id: string; name?: string; input?: string[] }>;
+  }>;
+  /** 默认模型 "providerId/modelId" */
+  defaultPrimary?: string;
+}
+
+/**
+ * 云端下发的应用更新配置。发现比本机新的版本时客户端立即提醒；
+ * 自动下载受 availableFrom / downloadWindow 管控，手动下载不受限。
+ */
+export interface GsAppUpdateConfig {
+  /** 最新版本号，如 "1.2.3" */
+  version: string;
+  /** 更新说明（按行，更新弹窗展示） */
+  notes?: string[];
+  /** 各平台安装包下载地址 */
+  downloads?: {
+    windowsX64?: string;
+    macArm?: string;
+    macIntel?: string;
+  };
+  /** 可下载开始时间（ISO 8601）；此时间之前只提醒不自动下载 */
+  availableFrom?: string;
+  /** 每日允许自动下载的时段（HH:mm 本地时间，支持跨零点如 20:00-06:00） */
+  downloadWindow?: { start: string; end: string } | null;
+}
 
 export interface GsClientConfig {
   version: number;
@@ -33,6 +66,10 @@ export interface GsClientConfig {
   };
   /** 云端 skill 管控表（按 skill id）；老服务端可能不下发，消费方需容错 */
   skills?: Record<string, GsSkillControl>;
+  /** 云端模型配置；null/缺省 = 不下发，客户端保留本地模型配置。老服务端不下发 */
+  models?: GsModelsConfig | null;
+  /** 应用更新配置；null/缺省 = 不下发，客户端不提示更新。老服务端不下发 */
+  appUpdate?: GsAppUpdateConfig | null;
 }
 
 export interface GsUser {
@@ -103,6 +140,12 @@ function persist(): void {
   }
 }
 
+/**
+ * 连接类失败的标准化错误码（渲染进程据此显示本地化提示）：
+ * TIMEOUT = 请求超时；NETWORK = 连接失败（DNS/拒绝/断网）。带 HTTP status 的业务错误不改写。
+ */
+export type GsConnectErrorCode = 'TIMEOUT' | 'NETWORK';
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -123,6 +166,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       throw error;
     }
     return body as T;
+  } catch (error) {
+    // fetch 的原始报错（AbortError/"fetch failed"）对用户没有意义，统一换成错误码
+    if ((error as { status?: number }).status === undefined) {
+      throw new Error((error as Error).name === 'AbortError' ? 'TIMEOUT' : 'NETWORK');
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -186,6 +235,33 @@ async function refresh(): Promise<void> {
   broadcastState();
 }
 
+/** 各种登录方式成功后的统一落地：存 token、置登录态、持久化并广播 */
+function applyLoginSuccess(result: { token: string; user: GsUser; config: GsClientConfig | null }): void {
+  token = result.token;
+  state = {
+    ...state,
+    isLoggedIn: true,
+    user: result.user,
+    config: result.config,
+    online: true,
+    lastSyncAt: Date.now(),
+  };
+  persist();
+  broadcastState();
+  triggerPostSync();
+}
+
+/** 登录类请求失败的统一处理：网络不通时标记离线，凭证错误不影响在线状态 */
+function handleLoginError(error: unknown): { success: false; message?: string } {
+  if (!isAuthError(error) && (error as { status?: number }).status === undefined) {
+    state = { ...state, online: false };
+    broadcastState();
+  }
+  return { success: false, message: (error as Error).message };
+}
+
+const clientInfo = () => ({ platform: process.platform, version: app.getVersion() });
+
 async function login(username: string, password: string): Promise<{ success: boolean; message?: string }> {
   if (!state.enabled) return { success: false, message: 'GS server not configured' };
   try {
@@ -193,34 +269,150 @@ async function login(username: string, password: string): Promise<{ success: boo
       '/api/auth/login',
       {
         method: 'POST',
-        body: JSON.stringify({
-          username,
-          password,
-          client: { platform: process.platform, version: app.getVersion() },
-        }),
+        body: JSON.stringify({ username, password, client: clientInfo() }),
       },
     );
-    token = result.token;
-    state = {
-      ...state,
-      isLoggedIn: true,
-      user: result.user,
-      config: result.config,
-      online: true,
-      lastSyncAt: Date.now(),
-    };
-    persist();
-    broadcastState();
-    triggerPostSync();
+    applyLoginSuccess(result);
     return { success: true };
   } catch (error) {
-    const message = (error as Error).message;
-    // 网络不通时标记离线，凭证错误不影响在线状态
+    return handleLoginError(error);
+  }
+}
+
+export interface GsLoginMethods {
+  password: boolean;
+  wecom: boolean;
+  email: boolean;
+}
+
+/**
+ * 探测服务端开放了哪些登录方式（登录框据此渲染）。
+ * 老服务端没有 /api/auth/methods：回退到企微单独探测 + 密码登录恒可用。
+ */
+async function getLoginMethods(): Promise<GsLoginMethods> {
+  if (!state.enabled) return { password: true, wecom: false, email: false };
+  try {
+    const result = await request<{ methods?: Partial<GsLoginMethods> }>('/api/auth/methods');
+    return {
+      password: result.methods?.password !== false,
+      wecom: result.methods?.wecom === true,
+      email: result.methods?.email === true,
+    };
+  } catch {
+    return { password: true, wecom: await wecomAvailable(), email: false };
+  }
+}
+
+/** 请求邮箱验证码：服务端查公司通讯录拿邮箱并发码，返回脱敏邮箱用于界面提示 */
+async function emailSendCode(
+  account: string,
+): Promise<{ success: boolean; maskedEmail?: string; resendIn?: number; message?: string }> {
+  if (!state.enabled) return { success: false, message: 'GS server not configured' };
+  try {
+    const result = await request<{ maskedEmail?: string; resendIn?: number }>('/api/auth/email/send-code', {
+      method: 'POST',
+      body: JSON.stringify({ account }),
+    });
+    return { success: true, maskedEmail: result.maskedEmail, resendIn: result.resendIn };
+  } catch (error) {
+    return handleLoginError(error);
+  }
+}
+
+/** 邮箱验证码登录：成功后的状态落地与账号密码登录完全一致 */
+async function emailLogin(account: string, code: string): Promise<{ success: boolean; message?: string }> {
+  if (!state.enabled) return { success: false, message: 'GS server not configured' };
+  try {
+    const result = await request<{ token: string; user: GsUser; config: GsClientConfig }>(
+      '/api/auth/email/verify',
+      {
+        method: 'POST',
+        body: JSON.stringify({ account, code, client: clientInfo() }),
+      },
+    );
+    applyLoginSuccess(result);
+    return { success: true };
+  } catch (error) {
+    return handleLoginError(error);
+  }
+}
+
+/** 探测服务端是否启用了企业微信扫码登录（登录框据此决定按钮显隐） */
+async function wecomAvailable(): Promise<boolean> {
+  if (!state.enabled) return false;
+  try {
+    const result = await request<{ enabled?: boolean }>('/api/auth/wecom/config');
+    return result.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+const WECOM_POLL_INTERVAL_MS = 2000;
+
+let wecomWindow: BrowserWindow | null = null;
+
+/**
+ * 企业微信扫码登录：向服务端申请一次性 state → 弹窗展示企微二维码页 →
+ * 轮询服务端取登录结果。用户关窗即取消（message='CANCELLED'，界面不当作错误）。
+ * 成功后的状态落地与账号密码登录完全一致。
+ */
+async function wecomLogin(): Promise<{ success: boolean; message?: string }> {
+  if (!state.enabled) return { success: false, message: 'GS server not configured' };
+  if (wecomWindow && !wecomWindow.isDestroyed()) {
+    wecomWindow.focus();
+    return { success: false, message: 'CANCELLED' };
+  }
+  let start: { state: string; qrUrl: string; expiresIn?: number };
+  try {
+    start = await request<{ state: string; qrUrl: string; expiresIn?: number }>('/api/auth/wecom/start', {
+      method: 'POST',
+      body: JSON.stringify({ client: { platform: process.platform, version: app.getVersion() } }),
+    });
+  } catch (error) {
     if (!isAuthError(error) && (error as { status?: number }).status === undefined) {
       state = { ...state, online: false };
       broadcastState();
     }
-    return { success: false, message };
+    return { success: false, message: (error as Error).message };
+  }
+
+  const qrWindow = new BrowserWindow({
+    width: 480,
+    height: 640,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    autoHideMenuBar: true,
+    title: '企业微信登录',
+    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
+  });
+  wecomWindow = qrWindow;
+  qrWindow.removeMenu();
+  void qrWindow.loadURL(start.qrUrl);
+
+  const deadline = Date.now() + (start.expiresIn ?? 5 * 60 * 1000);
+  try {
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, WECOM_POLL_INTERVAL_MS));
+      if (qrWindow.isDestroyed()) return { success: false, message: 'CANCELLED' };
+      let poll: { status: string; token?: string; user?: GsUser; config?: GsClientConfig; message?: string };
+      try {
+        poll = await request(`/api/auth/wecom/poll?state=${encodeURIComponent(start.state)}`);
+      } catch {
+        continue; // 单次轮询失败不终止，网络抖动下一轮再试
+      }
+      if (poll.status === 'pending') continue;
+      if (poll.status === 'ok' && poll.token && poll.user) {
+        applyLoginSuccess({ token: poll.token, user: poll.user, config: poll.config ?? null });
+        return { success: true };
+      }
+      return { success: false, message: poll.message || (poll.status === 'expired' ? '二维码已过期，请重试' : '登录失败') };
+    }
+    return { success: false, message: '二维码已过期，请重试' };
+  } finally {
+    wecomWindow = null;
+    if (!qrWindow.isDestroyed()) qrWindow.close();
   }
 }
 
@@ -339,6 +531,13 @@ export function initGsServerAuth(sqliteStore: SqliteStore): void {
   });
   ipcMain.handle('gsAuth:changePassword', (_event, args: { oldPassword?: string; newPassword?: string }) =>
     changePassword(String(args?.oldPassword ?? ''), String(args?.newPassword ?? '')));
+  ipcMain.handle('gsAuth:wecomAvailable', () => wecomAvailable());
+  ipcMain.handle('gsAuth:wecomLogin', () => wecomLogin());
+  ipcMain.handle('gsAuth:getLoginMethods', () => getLoginMethods());
+  ipcMain.handle('gsAuth:emailSendCode', (_event, args: { account?: string }) =>
+    emailSendCode(String(args?.account ?? '').trim()));
+  ipcMain.handle('gsAuth:emailLogin', (_event, args: { account?: string; code?: string }) =>
+    emailLogin(String(args?.account ?? '').trim(), String(args?.code ?? '').trim()));
 
   // 定时/聚焦刷新常驻注册：即使启动时未配置地址，用户手填后也能生效
   refreshTimer = setInterval(() => { void refresh(); }, REFRESH_INTERVAL_MS);

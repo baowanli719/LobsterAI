@@ -5,6 +5,7 @@ import path from 'path';
 import type { IMStore } from '../im/imStore';
 import type { PopoInstanceConfig } from '../im/types';
 import type { SqliteStore } from '../sqliteStore';
+import { buildAppConfigModelPatch } from './modelConfigTransform';
 
 export type EnterpriseUIAction = 'hide' | 'disable' | 'readonly';
 
@@ -380,11 +381,6 @@ export function syncEnterpriseConfig(
   return manifest;
 }
 
-const API_FORMAT_MAP: Record<string, 'anthropic' | 'openai'> = {
-  'anthropic-messages': 'anthropic',
-  'openai-completions': 'openai',
-};
-
 /**
  * Reverse-map openclaw.json models.providers → app_config.providers.
  * Enterprise openclaw.json should use real provider names as keys
@@ -402,72 +398,16 @@ function syncModelConfig(configPath: string, store: SqliteStore): void {
     const models = config.models as { providers?: Record<string, any> } | undefined;
     const agents = config.agents as { defaults?: { model?: { primary?: string } } } | undefined;
 
-    if (!models?.providers || Object.keys(models.providers).length === 0) {
+    const patch = buildAppConfigModelPatch(models?.providers ?? {}, agents?.defaults?.model?.primary);
+    if (!patch) {
       console.log('[Enterprise] no models.providers in openclaw.json, skipping model config sync');
       return;
     }
 
-    // Build app_config.providers from openclaw providers
-    const appProviders: Record<string, any> = {};
-    const allModels: Array<{ id: string; name: string; provider?: string; providerKey?: string; supportsImage?: boolean }> = [];
-
-    for (const [providerId, providerConfig] of Object.entries(models.providers)) {
-      const apiFormat = API_FORMAT_MAP[providerConfig.api] ?? 'anthropic';
-      const providerModels = (providerConfig.models ?? []).map((m: any) => ({
-        id: m.id,
-        name: m.name ?? m.id,
-        supportsImage: Array.isArray(m.input) && m.input.includes('image'),
-      }));
-
-      // Resolve apiKey: use plain text value, skip placeholders like ${LOBSTER_...}
-      const apiKey = typeof providerConfig.apiKey === 'string' && !providerConfig.apiKey.startsWith('${')
-        ? providerConfig.apiKey
-        : '';
-
-      appProviders[providerId] = {
-        enabled: true,
-        apiKey,
-        baseUrl: providerConfig.baseUrl ?? '',
-        apiFormat,
-        models: providerModels,
-      };
-
-      for (const m of providerModels) {
-        allModels.push({ ...m, provider: providerId, providerKey: providerId });
-      }
-    }
-
-    // Resolve default model from agents.defaults.model.primary ("provider/modelId")
-    let defaultModel = allModels[0]?.id ?? '';
-    let defaultModelProvider = Object.keys(appProviders)[0] ?? '';
-    const primary = agents?.defaults?.model?.primary;
-    if (primary && primary.includes('/')) {
-      const slashIdx = primary.indexOf('/');
-      defaultModelProvider = primary.slice(0, slashIdx);
-      defaultModel = primary.slice(slashIdx + 1);
-    }
-
-    // Resolve api config from default provider
-    const defaultProvider = appProviders[defaultModelProvider];
-    const apiKey = defaultProvider?.apiKey ?? '';
-    const baseUrl = defaultProvider?.baseUrl ?? '';
-
     // Merge with existing app_config to preserve theme/language/etc
     const existing = store.get<Record<string, unknown>>('app_config') ?? {};
-
-    const appConfig = {
-      ...existing,
-      api: { key: apiKey, baseUrl },
-      model: {
-        availableModels: allModels,
-        defaultModel,
-        defaultModelProvider,
-      },
-      providers: appProviders,
-    };
-
-    store.set('app_config', appConfig);
-    console.log(`[Enterprise] synced ${Object.keys(appProviders).length} provider(s) to app_config`);
+    store.set('app_config', { ...existing, ...patch });
+    console.log(`[Enterprise] synced ${Object.keys(patch.providers).length} provider(s) to app_config`);
   } catch (error) {
     console.error('[Enterprise] failed to sync model config:', error);
   }

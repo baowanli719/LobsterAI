@@ -204,6 +204,7 @@ import {
   syncEnterpriseConfig,
 } from './libs/enterpriseConfigSync';
 import { initGsServerAuth, setGsPostSyncHook } from './libs/gsServerAuth';
+import { applyGsCloudModels } from './libs/gsModelSync';
 import { syncServerSkills } from './libs/gsSkillSync';
 import {
   createOfficePreviewSession,
@@ -10274,8 +10275,15 @@ if (!gotTheLock) {
 
     // GS 服务端对接（登录 + 配置下发），依赖上面同步好的 enterprise_config
     initGsServerAuth(store);
-    // 登录/刷新成功后自动同步服务端下发的 skill（拉列表→比版本→下载解压覆盖）
-    setGsPostSyncHook(() => { void syncServerSkills(getSkillManager()); });
+    // 登录/刷新成功后：同步服务端下发的 skill + 应用云端模型配置 + 检查应用更新
+    // （更新检查由此驱动：发现新版本先提醒，到了服务端限定的下载时间自动开始下载）
+    setGsPostSyncHook(() => {
+      void syncServerSkills(getSkillManager());
+      void applyGsCloudModels(getStore(), (options) => syncOpenClawConfig(options));
+      void getAppUpdateCoordinator().checkFromGsConfigRefresh().catch((error) => {
+        console.warn('[AppUpdate] post-sync update check failed:', error);
+      });
+    });
 
     bindCoworkRuntimeForwarder();
     bindOpenClawStatusForwarder();
