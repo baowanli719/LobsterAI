@@ -112,6 +112,11 @@ contextBridge.exposeInMainWorld('electron', {
   enterprise: {
     getConfig: () => ipcRenderer.invoke('enterprise:getConfig'),
   },
+  wechatShare: {
+    // 预览文件发送到企业微信/微信：文件放剪贴板 + 拉起客户端，用户粘贴发送
+    send: (filePath: string, target: 'wecom' | 'wechat') =>
+      ipcRenderer.invoke('wechatShare:send', { filePath, target }),
+  },
   gsAuth: {
     getState: () => ipcRenderer.invoke('gsAuth:getState'),
     login: (username: string, password: string) =>
@@ -121,6 +126,8 @@ contextBridge.exposeInMainWorld('electron', {
     setServerUrl: (url: string) => ipcRenderer.invoke('gsAuth:setServerUrl', { url }),
     changePassword: (oldPassword: string, newPassword: string) =>
       ipcRenderer.invoke('gsAuth:changePassword', { oldPassword, newPassword }),
+    submitFeedback: (content: string, contact: string) =>
+      ipcRenderer.invoke('gsAuth:submitFeedback', { content, contact }),
     wecomAvailable: () => ipcRenderer.invoke('gsAuth:wecomAvailable'),
     wecomLogin: () => ipcRenderer.invoke('gsAuth:wecomLogin'),
     getLoginMethods: () => ipcRenderer.invoke('gsAuth:getLoginMethods'),

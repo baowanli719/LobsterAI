@@ -206,6 +206,7 @@ import {
 import { initGsServerAuth, setGsPostSyncHook } from './libs/gsServerAuth';
 import { applyGsCloudModels } from './libs/gsModelSync';
 import { syncServerSkills } from './libs/gsSkillSync';
+import { registerWechatShareIpc } from './libs/wechatShare';
 import {
   createOfficePreviewSession,
   createPreviewSession,
@@ -10275,6 +10276,8 @@ if (!gotTheLock) {
 
     // GS 服务端对接（登录 + 配置下发），依赖上面同步好的 enterprise_config
     initGsServerAuth(store);
+    // 预览文件分享到企业微信/微信（剪贴板中转 + 协议拉起）
+    registerWechatShareIpc();
     // 登录/刷新成功后：同步服务端下发的 skill + 应用云端模型配置 + 检查应用更新
     // （更新检查由此驱动：发现新版本先提醒，到了服务端限定的下载时间自动开始下载）
     setGsPostSyncHook(() => {

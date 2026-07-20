@@ -6,6 +6,7 @@ import { i18nService } from '../services/i18n';
 import { RootState } from '../store';
 import { openGsLoginDialog } from '../store/slices/gsAuthSlice';
 import GsChangePasswordDialog from './GsChangePasswordDialog';
+import GsFeedbackDialog from './GsFeedbackDialog';
 import UserAvatarIcon from './icons/UserAvatarIcon';
 
 /**
@@ -17,6 +18,7 @@ const GsLoginButton: React.FC = () => {
   const { isLoggedIn, user, online } = useSelector((state: RootState) => state.gsAuth);
   const [showMenu, setShowMenu] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,6 +87,13 @@ const GsLoginButton: React.FC = () => {
             </button>
             <button
               type="button"
+              onClick={() => { setShowMenu(false); setShowFeedback(true); }}
+              className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
+            >
+              {i18nService.t('gsFeedback')}
+            </button>
+            <button
+              type="button"
               onClick={() => void handleLogout()}
               className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-surface-raised transition-colors cursor-pointer"
             >
@@ -95,6 +104,9 @@ const GsLoginButton: React.FC = () => {
       )}
       {showChangePassword && (
         <GsChangePasswordDialog onClose={() => setShowChangePassword(false)} />
+      )}
+      {showFeedback && (
+        <GsFeedbackDialog onClose={() => setShowFeedback(false)} />
       )}
     </div>
   );

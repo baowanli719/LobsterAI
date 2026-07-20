@@ -442,6 +442,27 @@ function logChat(payload: { sessionId?: string; model?: string; promptSummary?: 
   }).catch(() => { /* 日志上报失败不影响使用 */ });
 }
 
+/** 提交反馈建议：内容必填，联系方式可选；附带平台/版本便于排查 */
+async function submitFeedback(
+  content: string,
+  contact: string,
+): Promise<{ success: boolean; message?: string }> {
+  if (!state.enabled || !token) return { success: false, message: 'not logged in' };
+  try {
+    await request('/api/feedback', {
+      method: 'POST',
+      body: JSON.stringify({
+        content: content.slice(0, 2000),
+        contact: contact.slice(0, 128),
+        client: clientInfo(),
+      }),
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: (error as Error).message };
+  }
+}
+
 async function changePassword(
   oldPassword: string,
   newPassword: string,
@@ -544,6 +565,8 @@ export function initGsServerAuth(sqliteStore: SqliteStore): void {
   });
   ipcMain.handle('gsAuth:changePassword', (_event, args: { oldPassword?: string; newPassword?: string }) =>
     changePassword(String(args?.oldPassword ?? ''), String(args?.newPassword ?? '')));
+  ipcMain.handle('gsAuth:submitFeedback', (_event, args: { content?: string; contact?: string }) =>
+    submitFeedback(String(args?.content ?? '').trim(), String(args?.contact ?? '').trim()));
   ipcMain.handle('gsAuth:wecomAvailable', () => wecomAvailable());
   ipcMain.handle('gsAuth:wecomLogin', () => wecomLogin());
   ipcMain.handle('gsAuth:getLoginMethods', () => getLoginMethods());

@@ -1444,6 +1444,13 @@ interface IElectronAPI {
       name: string;
     } | null>;
   };
+  wechatShare: {
+    /** 预览文件发送到企业微信/微信：文件放剪贴板 + 拉起客户端，用户在聊天窗口粘贴发送 */
+    send: (filePath: string, target: 'wecom' | 'wechat') => Promise<{
+      success: boolean;
+      code?: 'FILE_NOT_FOUND' | 'NOT_INSTALLED' | 'CLIPBOARD_FAILED' | 'LAUNCH_FAILED' | 'UNSUPPORTED_PLATFORM';
+    }>;
+  };
   gsAuth: {
     getState: () => Promise<import('../store/slices/gsAuthSlice').GsAuthState>;
     login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
@@ -1451,6 +1458,7 @@ interface IElectronAPI {
     refresh: () => Promise<import('../store/slices/gsAuthSlice').GsAuthState>;
     setServerUrl: (url: string) => Promise<{ success: boolean; message?: string }>;
     changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+    submitFeedback: (content: string, contact: string) => Promise<{ success: boolean; message?: string }>;
     wecomAvailable: () => Promise<boolean>;
     wecomLogin: () => Promise<{ success: boolean; message?: string }>;
     getLoginMethods: () => Promise<{ password: boolean; wecom: boolean; email: boolean }>;

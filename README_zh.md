@@ -1,94 +1,89 @@
-# LobsterAI — 全场景办公助手 Agent
+# 国盛证券AI办公协同 — LobsterAI 企业定制版
 
 <p align="center">
-  <img src="public/logo.png" alt="LobsterAI" width="120">
+  <img src="public/gszq1.png" alt="国盛证券AI办公协同" width="120">
 </p>
 
 <p align="center">
-  <strong>7×24 小时帮你干活的全场景办公助手 Agent，由网易有道出品</strong>
+  <strong>面向国盛证券办公与投研场景的企业级桌面 Agent</strong>
 </p>
 
 <p align="center">
-  <em>国内大厂首个开源桌面级 Agent，获 OpenClaw 创始人公开称赞。</em>
+  <em><code>gsai-office-customization</code> 分支 · 当前版本 0.1.6</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/netease-youdao/LobsterAI/stargazers"><img src="https://img.shields.io/github/stars/netease-youdao/LobsterAI?style=for-the-badge&logo=github&color=FFD43B" alt="GitHub stars"></a>
-  <a href="https://github.com/netease-youdao/LobsterAI/releases"><img src="https://img.shields.io/github/v/release/netease-youdao/LobsterAI?style=for-the-badge&color=brightgreen" alt="最新版本"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
-  <br>
-  <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Version-0.1.6-C8102E?style=for-the-badge" alt="Version 0.1.6">
+  <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows" alt="Windows">
   <img src="https://img.shields.io/badge/Electron-40-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/netease-youdao/LobsterAI/releases"><strong>⬇️ 下载客户端</strong></a>
+  <a href="#快速开始"><strong>快速开始</strong></a>
   &nbsp;·&nbsp;
-  <a href="#微信社群"><strong>💬 微信社群</strong></a>
-  &nbsp;·&nbsp;
-  <a href="https://www.star-history.com/#netease-youdao/LobsterAI&type=date"><strong>⭐ Star 趋势</strong></a>
+  <a href="#企业定制配置"><strong>企业定制配置</strong></a>
   &nbsp;·&nbsp;
   <a href="README.md">English</a> · 中文
 </p>
 
 ---
 
-**LobsterAI** 是由[网易有道](https://www.youdao.com/)出品的全场景办公助手 Agent —— 国内大厂首个开源桌面级 Agent。它 7×24 小时待命，真正帮你把活干完：数据分析、制作 PPT、生成视频、撰写文档、网络调研、收发邮件、定时任务，以及更多。
+本分支基于开源项目 **LobsterAI**，针对国盛证券内网部署、统一身份、集中配置和投研办公流程进行了定制。应用保留 Cowork、OpenClaw、本地工具执行、Artifacts、持久记忆和定时任务等基础能力，同时增加企业登录、私有知识库、金融技能、模型与 Skill 云端管控、应用更新和通知公告。
 
-与只能聊天的助手不同，LobsterAI 是**桌面级** Agent。借助 **Cowork 模式**，它能直接连接你的文件、终端、浏览器与本地项目，在真实工作环境中执行工具、运行命令 —— 每一次敏感操作都需经你批准。你可以创建专用 Agent（股票研究、内容创作、备课出卷……），用专家套件、技能与 MCP 服务持续扩展能力，还能通过微信、企业微信、钉钉、飞书、QQ、Telegram、Discord 等 IM 在手机上随时指挥电脑干活。
+默认品牌配置关闭网易有道云服务、IM 设置页、语音输入和图片/视频模型选择入口；会话、知识库和大部分工作数据保留在本机，企业服务端负责身份认证、策略与资源下发。
 
-## 为什么选择 LobsterAI
+## 分支特性
 
-- **🔓 代码开源，安全可信** — 代码 100% 开源，能力透明可查，权限、数据与执行链路全程可审计
-- **🖥️ 桌面级 Agent** — 可连接文件、终端、浏览器与本地项目，直接进入真实工作环境，而非沙箱里的对话框
-- **🧩 OpenClaw 生态扩展** — 基于开源 OpenClaw Agent 框架，技能、工具、MCP 服务与模型持续接入
-- **📱 手机远程指挥电脑干活** — 通过微信、企微、钉钉、飞书、QQ、Telegram、Discord 等 IM，7×24 小时远程指挥 LobsterAI
-- **🔒 数据本地，操作可控** — 会话、配置与记忆都留在本机，每次工具调用都有门控记录
+- **企业白标** — 应用名称、图标、安装包文件名、默认工作区、关于页信息均由配置驱动
+- **企业身份认证** — 支持账号密码、邮箱验证码和企业微信登录方式（以服务端下发为准），支持改密与离线配置兜底
+- **集中管控** — 服务端可控制设置页、提交权限、外部 Skill 安装、Skill 启停、模型配置、应用更新与通知公告
+- **私有知识库** — 支持创建多个本地知识库，批量导入文件或文件夹，并在对话中显式引用
+- **金融投研技能** — 内置行情、异动归因、宏观资讯、主题概念、选股、个股/基金诊断及国盛通 AI 等技能
+- **企业级 Skill 生命周期** — 自动同步服务端 Skill，按版本覆盖更新，并上报来源、风险级别、用户身份和 `SKILL.md` 内容指纹
+- **办公报告增强** — `rich-report` 作为默认写作 Skill，支持 Word/Excel 输入、图表和统一报告样式
+- **内网优先** — 可预置内部 OpenAI 兼容模型，并由服务端动态替换；默认阻断 LobsterAI 上游云接口
 
-## 能力总览
+## 典型场景
 
-- **全场景办公** — 数据分析、PPT 制作、视频生成、文档撰写、Web 搜索、邮件收发，覆盖日常办公全流程
-- **自定义 Agent** — 创建专用 Agent（如股票助手、内容创作、备课出卷专家），各自拥有身份设定、技能与 IM 渠道
-- **专家套件与技能** — 28 个内置技能，外加可安装的专家套件；可用 `skill-creator` 自建技能并热加载
-- **MCP 支持** — 通过 Model Context Protocol 服务接入外部工具与数据源
-- **定时任务** — 对话式或 GUI 创建周期任务 —— 每日新闻、邮箱整理、定期报告等
-- **持久记忆** — 以文件形式跨会话记住你的偏好与上下文，越用越懂你
-- **本地优先** — 任务可在本地直接运行
-- **跨平台** — macOS（Intel + Apple Silicon）、Windows 桌面端，配合 IM 实现移动端覆盖
-- **Windows 内置 Python 运行时** — Windows 安装包内置开箱即用的 Python 解释器；技能依赖可按需安装
-
-## 实战场景
-
-| 场景 | 示例指令 |
-|------|---------|
-| **从 0 到 1 开发一套系统** | 「我开了家小店，每天还用 Excel 记进货和销售，太乱了。帮我做一套进销存管理系统：能录入进货、登记销售、自动算库存和利润，本地直接打开就能用。」 |
-| **改本地文件、处理数据、生成网页** | 「基于 `产品增长数据.xlsx` 里的数据，帮我做一个可视化页面。」 |
-| **每日定时整理科技新闻** | 「每天早上 9 点把前一天的 AI 科技新闻发给我，重点关注 OpenAI、Anthropic、Google 和国内公司。」 |
-| **深度调研 + PPT 生成** | 「深度调研全球 Agent 产品市场格局，并把当前文件夹里的 `流量报告.pdf` 做成汇报 PPT。」 |
-| **浏览器自动化** | 「每天打开广告后台，看消耗、转化率、线索成本是否异常，异常就总结原因。」 |
-| **简历筛选与文档初审** | 「把这个文件夹里的 50 份简历整理成筛选表，对照岗位 JD 标出不符合硬性要求的，再挑出最匹配的 10 人。」 |
-| **持续成长，越用越懂你** | 「以后帮我写文档都要逻辑清晰、言简意赅。」 —— 写入长期记忆 |
+| 场景 | 示例 |
+|------|------|
+| **私有资料问答** | 建立制度或投研资料知识库，导入 PDF、Word、Excel、CSV、Markdown 和文本文件，在对话中引用后检索回答 |
+| **行情与异动分析** | 获取市场行情，结合异动归因、宏观资讯和主题概念形成分析结论 |
+| **智能选股与诊断** | 使用智能选股、个股诊断、基金优选和基金诊断技能辅助研究 |
+| **报告自动生成** | 将本地资料或 Excel 数据整理为带图表、统一版式的 Word 报告或 PPT |
+| **企业统一配置** | 登录后自动应用服务端下发的模型、Skill、页面权限、提交策略和更新计划 |
+| **持续办公自动化** | 使用本地文件、终端、浏览器和定时任务完成周期性整理、检查与交付 |
 
 ## 工作原理
 
-<p align="center">
-  <img src="docs/res/architecture_v2_zh.png" alt="Architecture" width="500">
-</p>
+```mermaid
+flowchart LR
+  U[用户] --> UI[国盛办公 AI 桌面端]
+  UI --> C[Cowork / OpenClaw]
+  C --> L[本地文件、终端、浏览器]
+  C --> K[私有知识库 / memory_search]
+  UI --> G[GS 企业服务]
+  G --> A[认证与用户策略]
+  G --> M[模型、Skill 与应用更新]
+  G --> N[通知公告与页面管控]
+```
 
 ## 快速开始
 
 ### 环境要求
 
 - **Node.js** >= 24 < 25
-- **npm**
+- **npm** 或 **pnpm**
+- Windows 打包需要 PowerShell、PortableGit，以及已安装的项目依赖
 
 ### 1. 克隆与安装
 
 ```bash
-git clone https://github.com/netease-youdao/LobsterAI.git
+git clone https://github.com/baowanli719/LobsterAI.git
 cd LobsterAI
-npm install
+git checkout gsai-office-customization
+pnpm install
 ```
 
 ### 2. 启动应用
@@ -108,7 +103,22 @@ runtime 构建完成后，日常开发可使用更快的命令 —— 它复用�
 npm run electron:dev
 ```
 
-Vite 开发服务器默认运行在 `http://localhost:5175`。应用默认连接 LobsterAI 的**正式（生产）服务**，无需额外配置即可登录使用。
+Vite 开发服务器默认运行在 `http://localhost:5175`。启动前请根据部署环境检查企业服务地址和默认模型配置；不要把真实 Token、口令或生产 API Key 提交到仓库。
+
+### 企业定制配置
+
+| 配置文件 / 入口 | 用途 |
+|-----------------|------|
+| `src/shared/branding/branding.config.json` | 应用名称、Logo、安装包名、功能开关、GS 服务端默认地址 |
+| `src/shared/about/about.config.json` | 关于页产品名称、维护部门、联系人与链接 |
+| `src/shared/defaultModel/defaultModel.config.json` | 首次启动时预置的 OpenAI 兼容模型；部署前替换地址和凭据 |
+| `enterprise-config/manifest.json` | 机器级页面控制、服务地址锁定，以及 OpenClaw、Skills、Agents、MCP、Plugins 同步策略 |
+| `SKILLs/skills.config.json` | 打包内置 Skill 的启停、排序和中文展示基础配置 |
+| `GS_SERVER_URL` | 开发调试时覆盖企业服务地址的环境变量 |
+
+企业服务地址按“用户本地覆盖 → `enterprise-config/manifest.json` → 品牌内置值 → `GS_SERVER_URL`”的优先级解析。若 manifest 设置 `server.lockBaseUrl=true`，用户不能在登录窗口修改服务器地址。
+
+企业服务不可达时，客户端保留最近一次成功获取的用户与策略配置并进入离线状态；需要在线认证或服务端授权的操作仍会受到限制。
 
 #### OpenClaw 构建选项
 
@@ -210,6 +220,23 @@ Windows 打包会内置便携 Python 运行时到 `resources/python-win`（安�
 
 </details>
 
+### Windows 快速打包
+
+依赖未变化且 OpenClaw runtime 已准备好时，可直接调用快速脚本，避免 `pnpm run` 在构建中途触发隐式依赖重装或原生模块重编译：
+
+```powershell
+# 标准快速打包
+.\scripts\dist-win-fast.ps1
+
+# 首先重建 OpenClaw runtime
+.\scripts\dist-win-fast.ps1 -PrepareOpenClawRuntime
+
+# 增量构建：复用 renderer，并跳过 Skill 构建
+.\scripts\dist-win-fast.ps1 -SkipRendererBuild -SkipSkills
+```
+
+脚本默认将 Node 堆上限提升到 4 GB，并直接调用本地工具链。依赖变化后应先手动执行 `pnpm install`。
+
 ## 架构概览
 
 LobsterAI 采用 Electron 严格进程隔离架构，所有跨进程通信通过 IPC 完成。
@@ -220,7 +247,9 @@ LobsterAI 采用 Electron 严格进程隔离架构，所有跨进程通信通过
 - 窗口生命周期管理
 - SQLite 数据持久化
 - OpenClaw Agent 引擎（主引擎）+ CoworkEngineRouter 调度层
-- IM 网关 — 微信、企业微信、钉钉、飞书、QQ、Telegram、Discord、POPO 远程接入
+- GS 企业认证、客户端策略刷新、通知公告、模型/Skill 自动同步与应用更新
+- 私有知识库文件管理、格式转换与 OpenClaw `memory_search` 索引接线
+- IM 网关代码仍保留，但当前品牌配置默认不启动、不展示设置入口
 - 40+ IPC 通道处理
 - 安全：context isolation 启用，node integration 禁用，sandbox 启用
 
@@ -230,7 +259,7 @@ LobsterAI 采用 Electron 严格进程隔离架构，所有跨进程通信通过
 
 **Renderer Process**（`src/renderer/`）：
 - React 18 + Redux Toolkit + Tailwind CSS
-- 所有 UI 和业务逻辑
+- 企业登录、通知横幅、知识库、Skill 管理、Cowork 与设置界面
 - 仅通过 IPC 与主进程通信
 
 ### 目录结构
@@ -254,8 +283,12 @@ src/
 │       │   └── claudeRuntimeAdapter.ts  # 旧内置适配器（已废弃）
 │       ├── coworkRunner.ts          # 旧内置执行器（已废弃）
 │       ├── openclawEngineManager.ts # OpenClaw 运行时生命周期管理
-│       ├── openclawConfigSync.ts    # 同步 cowork 配置到 OpenClaw 配置文件
-│       └── coworkMemoryExtractor.ts # 记忆提取
+│       ├── openclawConfigSync.ts    # 同步 cowork、模型和知识库索引配置
+│       ├── gsServerAuth.ts          # 企业登录、策略刷新与公告配置
+│       ├── gsModelSync.ts           # 服务端模型配置应用
+│       ├── gsSkillSync.ts           # 服务端 Skill 同步与安装清单上报
+│       ├── knowledgeBaseManager.ts  # 私有知识库文件管理
+│       └── knowledgeBaseImportConverters.ts # Office/PDF 文本转换
 │
 ├── renderer/                        # React 前端
 │   ├── App.tsx                     # 根组件
@@ -265,9 +298,12 @@ src/
 │   └── components/
 │       ├── cowork/                 # Cowork UI 组件
 │       ├── artifacts/              # Artifact 渲染器
-│       ├── skills/                 # 技能管理 UI
+│       ├── skills/                 # 受企业策略约束的技能管理 UI
+│       ├── kits/                   # 专家套件与知识库 UI
 │       ├── im/                     # IM 集成 UI
-│       └── Settings.tsx            # 设置面板
+│       ├── GsLoginDialog.tsx       # 企业登录
+│       ├── GsNoticeBanner.tsx      # 服务端通知公告
+│       └── Settings.tsx            # 设置面板与页面管控
 │
 SKILLs/                              # 技能定义目录
 ├── skills.config.json              # 技能启停与排序配置
@@ -276,7 +312,10 @@ SKILLs/                              # 技能定义目录
 ├── xlsx/                           # Excel 表格
 ├── pptx/                           # PowerPoint 演示
 ├── pdf/                            # PDF 处理
-├── remotion/                       # 视频生成
+├── rich-report/                    # 企业报告生成
+├── market_quotes/                  # 市场行情
+├── stock_diagnosis/                # 个股诊断
+├── fund_diagnosis/                 # 基金诊断
 ├── playwright/                     # Web 自动化
 └── ...                             # 更多技能
 ```
@@ -316,45 +355,43 @@ Cowork 通过 IPC 事件实现实时双向通信：
 
 ## 技能系统
 
-LobsterAI 内置很多 skill，覆盖办公、创作、投研、自动化等多种场景，通过 `SKILLs/skills.config.json` 配置启停和排序，以下是一些典型的 skill 案例：
+本分支以办公与金融投研 Skill 为核心，通过 `SKILLs/skills.config.json` 配置内置 Skill 的启停和排序。服务端上传的 Skill 会在登录或策略刷新后按版本自动同步到本地。
 
 <details>
-<summary>查看完整技能列表</summary>
+<summary>查看主要技能</summary>
 
 | 技能 | 功能 | 典型场景 |
 |------|------|---------|
+| rich-report | 企业报告生成 | Word/Excel 输入、图表、统一样式报告 |
 | web-search | Web 搜索 | 信息检索、资料收集 |
 | docx | Word 文档生成 | 报告撰写、方案输出 |
 | xlsx | Excel 表格生成 | 数据分析、报表制作 |
 | pptx | PowerPoint 制作 | 演示文稿、汇报材料 |
 | pdf | PDF 处理 | 文档解析、格式转换 |
-| remotion | 视频生成（Remotion） | 宣传视频、数据可视化动画 |
-| seedance | AI 视频生成（Seedance） | 文生视频、图生视频 |
-| seedream | AI 图片生成（Seedream） | 文生图、图片编辑与融合 |
 | playwright | Web 自动化 | 网页操作、自动化测试 |
-| canvas-design | Canvas 绘图设计 | 海报、图表设计 |
-| frontend-design | 前端 UI 设计 | 原型制作、页面设计 |
-| develop-web-game | Web 游戏开发 | 小游戏快速原型 |
+| market_quotes | 市场行情 | 指数、股票、基金行情查询 |
+| movement_attribution | 异动归因 | 分析市场或标的异动原因 |
+| macro_news | 宏观资讯 | 宏观政策与市场新闻整理 |
+| theme_concept | 主题概念 | 主题与概念线索研究 |
+| smart_stock_screener | 智能选股 | 根据条件筛选股票 |
+| stock_diagnosis | 个股诊断 | 个股基本面与交易表现分析 |
+| smart_fund_picker | 基金优选 | 根据目标筛选基金 |
+| fund_diagnosis | 基金诊断 | 基金表现与风险分析 |
+| gst_ai_chat | 国盛通 AI | 对接国盛业务问答能力 |
 | stock-analyzer | 股票深度分析 | A 股深度研究、估值与财报分析 |
 | stock-announcements | 股票公告获取 | 上市公司公告检索、信息披露查阅 |
 | stock-explorer | 股票信息探索 | 股票基本信息查询、行情概览 |
-| content-planner | 内容规划 | 选题策划、内容日历制作 |
-| article-writer | 文章撰写 | 多风格长文创作、自媒体内容生成 |
-| daily-trending | 每日热榜 | 热点资讯聚合、趋势追踪 |
-| films-search | 影视资源搜索 | 电影/剧集网盘资源检索下载 |
-| music-search | 音乐资源搜索 | 歌曲/专辑网盘资源检索下载 |
-| technology-news-search | 科技资讯搜索 | 编程、AI、IT 行业动态（默认禁用） |
-| weather | 天气查询 | 天气信息获取 |
 | local-tools | 本地系统工具 | 文件管理、系统操作 |
 | imap-smtp-email | 邮件收发 | 邮件处理、自动回复 |
 | create-plan | 计划编排 | 项目规划、任务分解 |
-| youdaonote | 有道云笔记 | 笔记管理、待办管理、网页剪藏 |
 | skill-vetter | 技能安全审查 | 安装第三方技能前的安全检验 |
 | skill-creator | 自定义技能创建 | 扩展新能力 |
 
 </details>
 
-支持通过 `skill-creator` 创建自定义技能并热加载。
+影视搜索、音乐搜索和有道云笔记已从默认安装包移除。图片/视频生成相关 Skill 仍可按部署需要保留，但当前品牌配置隐藏对应模型选择入口。
+
+企业策略 `permissions.allowExternalSkillInstall=false` 时，市场、ZIP、文件夹和远程地址等外部安装入口全部隐藏，同时主进程会拦截来路不明的本地 Skill。服务端还可对指定 Skill 强制开启或关闭。
 
 ## 定时任务
 
@@ -375,26 +412,24 @@ LobsterAI 支持创建定时任务，让 Agent 按计划自动执行重复性工
 | 信息监控 | 定期检查指定网站内容变化并通知 |
 | 工作提醒 | 按计划生成待办事项清单或会议纪要 |
 
-定时任务基于 Cron 表达式调度，支持分钟、小时、日、周、月等多种周期粒度。任务执行时会自动启动 Cowork 会话，结果可通过桌面端查看或经 IM 推送到手机。
+定时任务基于 Cron 表达式调度，支持分钟、小时、日、周、月等多种周期粒度。任务执行时会自动启动 Cowork 会话，结果默认在桌面端查看；启用 IM 网关后也可扩展移动端通知。
 
-## IM 集成 — 手机端远程操控
+## IM 集成
 
-LobsterAI 支持将 Agent 桥接到多种 IM 平台。在手机上通过 IM 发送消息即可远程触发桌面端的 Agent 执行任务，随时随地指挥你的个人助理。
+上游 LobsterAI 的微信、企微、钉钉、飞书、QQ、Telegram、Discord、云信和 POPO 网关代码仍保留，但本分支的默认品牌配置设置 `showImChannels=false`：主进程不启动 IM 网关，设置页也不展示 IM 入口。
 
-| 平台 | 协议 | 说明 |
-|------|------|------|
-| 微信 | OpenClaw 网关 | 微信账号接入，支持私聊与群聊 |
-| 企业微信 | OpenClaw 网关 | 企业微信应用机器人，支持私聊与群聊 |
-| 钉钉 | DingTalk Stream | 企业机器人双向通信，支持多实例 |
-| 飞书 | Lark SDK | 飞书/Lark 应用机器人，支持多实例 |
-| QQ | OpenClaw 网关 | QQ 机器人接入（官方 Bot API），支持多实例 |
-| Telegram | grammY | Bot API 接入，支持 Webhook 与轮询 |
-| Discord | discord.js | Discord Bot 接入，支持服务器与私聊 |
-| 云信 IM | node-nim V2 SDK | [网易云信 IM P2P 私聊](https://doc.yunxin.163.com/messaging2/getting-started) |
-| 网易小蜜蜂 | node-nim V2 SDK | [网易小蜜蜂个人数字助理](https://wp.m.163.com/163/html/bee/lobsterai_guide/index.html) |
-| 网易 POPO | OpenClaw 网关 | 网易 POPO 企业 IM，支持 WebSocket 与 Webhook 两种接入方式 |
+如部署环境需要 IM 机器人，可在 `src/shared/branding/branding.config.json` 中显式开启，并通过 `enterprise-config` 或设置页提供平台凭据。该功能不属于当前默认交付范围。
 
-在设置面板中配置对应平台的 Token/密钥即可启用。配置完成后，你可以在手机 IM 中直接对 Agent 下达指令（如「帮我分析这份数据」「做一份本周工作汇报 PPT」），Agent 会在桌面端自动执行并返回结果。
+## 私有知识库
+
+- 在专家套件页面创建、重命名和删除多个知识库
+- 支持选择文件或递归导入文件夹；格式包括 `.md`、`.txt`、`.csv`、`.docx`、`.xlsx`、`.xls` 和 `.pdf`
+- 富格式文件在导入时转换为 Markdown 文本，原始资料不上传到上游云服务
+- 单个源文件或转换结果上限为 5 MB，单批文件夹导入最多展开 500 个文件
+- 启用 Embedding 后，知识库目录通过 `memorySearch.extraPaths` 纳入 OpenClaw 全局索引
+- 在输入框引用知识库时，Agent 会优先检索该目录；检索不可用时可降级为直接读取 Markdown 文件
+
+知识库文件保存在 OpenClaw 状态目录的 `knowledge-bases/<kbId>/` 下，每个知识库包含 `kb.json` 元数据和转换后的 `.md` 文档。
 
 ## 持久记忆
 
@@ -423,7 +458,7 @@ LobsterAI 的记忆系统基于 OpenClaw，以文件形式持久化存储在工�
 
 ## 数据存储
 
-所有数据存储在本地 SQLite 数据库（`lobsterai.sqlite`，位于用户数据目录）。
+会话、配置、企业登录缓存和策略快照存储在本地 SQLite 数据库（`lobsterai.sqlite`，位于用户数据目录）；知识库和 OpenClaw 记忆以文件形式存储在 OpenClaw 状态目录。
 
 <details>
 <summary>数据库表</summary>
@@ -444,14 +479,20 @@ LobsterAI 的记忆系统基于 OpenClaw，以文件形式持久化存储在工�
 
 </details>
 
+企业登录 Token、最近一次用户信息、客户端策略、服务器地址覆盖和云端模型清单通过 `kv` 表持久化。知识库不写入 SQLite，以独立目录形式参与本地索引。
+
 ## 安全模型
 
-LobsterAI 在多个层面实施安全控制：
+本分支在 LobsterAI 基础安全模型上增加企业策略控制：
 
 - **进程隔离** — context isolation 启用，node integration 禁用
 - **权限门控** — 敏感工具调用需用户明确审批
 - **工作区边界** — 文件操作限制在指定工作目录内
 - **IPC 验证** — 所有跨进程调用经过类型检查
+- **上游云服务熔断** — `disableCloudServices=true` 时统一阻断网易有道 API 端点
+- **Skill 白名单** — 服务端禁止外部安装时，隐藏安装入口并阻止加载未托管 Skill
+- **配置收敛** — 服务端可将设置页设为隐藏、只读或可编辑，并可禁止提交任务
+- **内容完整性** — 已安装 Skill 上报 `SKILL.md` 的 SHA-256 指纹，便于服务端识别内容变化
 
 ## 技术栈
 
@@ -467,6 +508,8 @@ LobsterAI 在多个层面实施安全控制：
 | 状态 | Redux Toolkit |
 | AI 引擎 | OpenClaw（主引擎） |
 | 存储 | better-sqlite3 |
+| 企业服务 | GS REST API（认证、配置、Skill、模型、更新、公告） |
+| 知识库 | 本地 Markdown + OpenClaw memory_search |
 | Markdown | react-markdown + remark-gfm + rehype-katex |
 | 图表 | Mermaid |
 | 安全 | DOMPurify |
@@ -478,7 +521,18 @@ LobsterAI 在多个层面实施安全控制：
 
 ### 应用配置
 
-应用级配置存储在 SQLite `kv` 表中，通过设置面板修改。
+应用级配置存储在 SQLite `kv` 表中，通过设置面板修改；品牌和部署默认值由“企业定制配置”一节列出的 JSON 文件控制。
+
+登录后，企业服务可动态下发：
+
+- 设置页 `hidden` / `readonly` / `editable` 状态
+- 是否允许提交任务、安装外部 Skill 和使用自定义模型
+- 指定 Skill 的强制启用/停用状态
+- OpenAI 兼容模型 Provider、模型列表与默认模型
+- 客户端版本、下载地址、可下载时间和每日自动下载窗口
+- 带起止时间和可关闭策略的底部通知公告
+
+云端模型更新会写入 `app_config` 并同步 OpenClaw；服务端移除的托管 Provider 会被清理，但不会删除用户自行创建且未被云端托管的 Provider。
 
 ### Cowork 配置
 
@@ -489,7 +543,7 @@ Cowork 会话配置包含：
 
 ### 国际化
 
-支持中文（默认）和英文两种语言，通过设置面板切换。
+界面仍支持中文和英文。为保证企业办公输出一致，本分支通过托管 `AGENTS.md` 策略要求 Agent 执行过程使用简体中文。
 
 ## OpenClaw 版本管理
 
@@ -577,13 +631,13 @@ test('log file pattern matches daily name', () => {
 - Tailwind CSS 优先，避免自定义 CSS
 - 提交信息遵循 `type: short imperative summary` 格式（如 `feat: add artifact toolbar`）
 
-## 微信社群
+## 维护与支持
 
-扫码加入微信交流群，获取帮助、反馈问题、了解最新动态：
+- 维护部门：信息技术部
+- 联系人：包万里
+- 联系邮箱：`baowanli@gszq.com`
 
-<p align="center">
-  <img src="https://shared.ydstatic.com/market/souti/fihserChatWeb/online/2.0.4/dist/assets/wechat_group-B34qRm1G.png" alt="微信社群二维码" width="200">
-</p>
+客户端“关于”页面的信息由 `src/shared/about/about.config.json` 管理，部署时可按维护责任更新。
 
 ## 贡献
 
@@ -600,11 +654,6 @@ PR 描述中请包含：变更说明、关联 issue、UI 变更附截图，以�
 [MIT License](LICENSE)
 
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=netease-youdao/LobsterAI&type=date&legend=top-left)](https://www.star-history.com/#netease-youdao/LobsterAI&type=date&legend=top-left)
-
-
 ---
 
-由[网易有道](https://www.youdao.com/)开发维护。
+本项目基于网易有道开源的 [LobsterAI](https://github.com/netease-youdao/LobsterAI) 定制，企业版由国盛证券信息技术部维护。
