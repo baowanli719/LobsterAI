@@ -580,9 +580,9 @@ const App: React.FC = () => {
   const handlePrivacyAccept = useCallback(async () => {
     await window.electron.store.set('privacy_agreed', true);
     setPrivacyAgreed(true);
-    // 公司版：跳过欢迎页，直接进入「自定义模型」设置
-    handleShowSettings({ initialTab: 'model' });
-  }, [handleShowSettings]);
+    // 企业版模型由服务端下发，首次启动不再弹「自定义模型」设置：
+    // 此时用户还没登录、云端配置尚未下发，弹本地模型配置会误导用户
+  }, []);
 
   const handlePrivacyReject = useCallback(() => {
     // 立刻隐藏窗口，让用户感觉立即关闭
