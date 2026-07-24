@@ -1,6 +1,7 @@
 import { LightBulbIcon } from '@heroicons/react/24/outline';
 import React, { useEffect, useState } from 'react';
 
+import { branding } from '../../../shared/branding';
 import { coworkService } from '../../services/cowork';
 import { i18nService } from '../../services/i18n';
 import type { OpenClawEngineStatus } from '../../types/cowork';
@@ -101,8 +102,8 @@ const EngineStartupOverlay: React.FC = () => {
         <div className="relative mb-5">
           <div className="absolute -inset-2 rounded-3xl bg-primary/20 blur-xl animate-pulse" aria-hidden="true" />
           <img
-            src="logo.png"
-            alt="LobsterAI"
+            src={branding.logo}
+            alt={branding.appName}
             width={72}
             height={72}
             className="relative rounded-2xl select-none"

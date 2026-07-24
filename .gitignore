@@ -38,13 +38,16 @@ nul
 .work.env
 .keyfrom-build/
 
+# OpenClaw request-capture debug artifacts (local diagnostics only)
+openclaw-fetch-hook.cjs
+openclaw-last-body.json
+openclaw-request-capture.jsonl
+
 .playwright-mcp/
 .cowork-temp/
 .sisyphus/
 .idea/
-
-# editorconfig files
-.vscode/
+ 
 
 sandbox/
 
@@ -53,3 +56,6 @@ sandbox/
 openspec/
 .superpowers/
 .diagram/
+
+# Company enterprise deploy config (contains internal gateway API key) — never commit
+enterprise-config/

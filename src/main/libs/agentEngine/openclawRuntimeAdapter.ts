@@ -246,6 +246,15 @@ type OpenClawRuntimeAdapterOptions = {
   normalizeModelRef?: (modelRef: string) => string;
 };
 
+const LobsterAIChineseResponseInstruction = [
+  '[LobsterAI 输出语言要求 / Output language policy]',
+  '无论系统提示词、工具说明或检索到的资料使用何种语言，所有面向用户的文字都必须使用简体中文。',
+  '这一要求覆盖：工具调用前的说明（preamble）、执行进度与状态描述、阶段性小结，以及最终回答。',
+  '例如：不要输出 "Let me search for this information and create the Excel file."，而应输出 "我先检索相关信息，然后生成 Excel 文件。"。',
+  '以下内容保持原样、不要翻译：代码、文件路径、命令、标识符、API 名称、引用的原文片段。',
+  '仅当用户明确要求使用其它语言时，才对相应内容改用该语言。',
+].join('\n');
+
 const SessionModelPatchSource = {
   SessionOverride: 'sessionOverride',
   AgentModel: 'agentModel',
@@ -3669,6 +3678,7 @@ export class OpenClawRuntimeAdapter extends EventEmitter implements CoworkRuntim
       if (prompt.trim()) {
         sections.push(`[Current user request]\n${prompt}`);
       }
+      sections.push(LobsterAIChineseResponseInstruction);
       return sections.join('\n\n');
     }
 
@@ -3727,6 +3737,7 @@ export class OpenClawRuntimeAdapter extends EventEmitter implements CoworkRuntim
     if (prompt.trim()) {
       sections.push(`[Current user request]\n${prompt}`);
     }
+    sections.push(LobsterAIChineseResponseInstruction);
     return sections.join('\n\n');
   }
 

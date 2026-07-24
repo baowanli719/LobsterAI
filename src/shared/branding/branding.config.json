@@ -1,0 +1,17 @@
+{
+  "appName": "国盛证券办公协同平台",
+  "agentName": "GSAI Office Collaboration Agent",
+  "company": {
+    "zh": "国盛证券办公协同",
+    "en": "GSAI Office Collaboration"
+  },
+  "appId": "com.gszq.office.app",
+  "logo": "gszq1.png",
+  "hideLogin": true,
+  "showMediaGeneration": false,
+  "showImChannels": false,
+  "showVoiceInput": false,
+  "disableCloudServices": true,
+  "gsServerBaseUrl": "http://192.168.230.108/gsclaw",
+  "fileName": "GSAIOffice"
+}

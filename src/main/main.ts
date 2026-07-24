@@ -34,6 +34,7 @@ import { AgentId, AgentIpcChannel } from '../shared/agent/constants';
 import { AppUpdateIpc } from '../shared/appUpdate/constants';
 import { ArtifactBrowserPartition, ArtifactPreviewIpc, ArtifactPreviewProtocol } from '../shared/artifactPreview/constants';
 import { AuthIpcChannel } from '../shared/auth/constants';
+import { branding } from '../shared/branding';
 import {
   type BrowserDiagnosticResultStep,
   BrowserDiagnosticStatus,
@@ -194,6 +195,7 @@ import {
   getPortalTasksUrl,
   getServerApiBaseUrl,
   getSkillStoreUrl,
+  isCloudServicesDisabled,
   refreshEndpointsTestMode,
 } from './libs/endpoints';
 import {
@@ -201,6 +203,10 @@ import {
   resolveEnterpriseConfigPath,
   syncEnterpriseConfig,
 } from './libs/enterpriseConfigSync';
+import { initGsServerAuth, setGsPostSyncHook } from './libs/gsServerAuth';
+import { applyGsCloudModels } from './libs/gsModelSync';
+import { syncServerSkills } from './libs/gsSkillSync';
+import { registerWechatShareIpc } from './libs/wechatShare';
 import {
   createOfficePreviewSession,
   createPreviewSession,
@@ -221,6 +227,18 @@ import {
 } from './libs/htmlShare/htmlShareClient';
 import { packageHtmlFile } from './libs/htmlShare/htmlSharePackager';
 import { getKeyfromAttribution, initializeKeyfromAttribution } from './libs/keyfromAttribution';
+import {
+  collectImportFiles as collectKnowledgeBaseImportFiles,
+  createKnowledgeBase,
+  deleteDoc as deleteKnowledgeBaseDoc,
+  deleteKnowledgeBase,
+  ensureKnowledgeBasesRoot,
+  importDocs as importKnowledgeBaseDocs,
+  listDocs as listKnowledgeBaseDocs,
+  listKnowledgeBases,
+  readDoc as readKnowledgeBaseDoc,
+  renameKnowledgeBase,
+} from './libs/knowledgeBaseManager';
 import { exportLogsZip } from './libs/logExport';
 import { inferImageMimeTypeFromDataUrl, type PersistedGeneratedImageAsset, persistGeneratedImageAssets, type PersistGeneratedImageAssetsResult, persistGeneratedVideoAssets, type RemoteGeneratedMediaAsset } from './libs/mediaAssetPersistence';
 import { migrateAgentModelRefs, parsePrimaryModelRef, resolveQualifiedAgentModelRef } from './libs/openclawAgentModels';
@@ -1533,6 +1551,14 @@ const bootstrapOpenClawEngine = async (
         console.warn('[OpenClaw] bootstrap: ensureDefaultIdentity failed (non-fatal):', err);
       }
 
+      // Ensure the knowledge-bases root exists before config sync writes it
+      // into memorySearch.extraPaths.
+      try {
+        ensureKnowledgeBasesRoot(manager.getStateDir());
+      } catch (err) {
+        console.warn('[OpenClaw] bootstrap: ensureKnowledgeBasesRoot failed (non-fatal):', err);
+      }
+
       const syncResult = await syncOpenClawConfig({
         reason: `bootstrap:${reason}`,
         restartGatewayIfRunning: false,
@@ -2469,7 +2495,6 @@ const getTaskCompletionNotifier = (): TaskCompletionNotifier => {
   if (!taskCompletionNotifier) {
     taskCompletionNotifier = new TaskCompletionNotifier({
       getWindow: () => mainWindow,
-      getNotificationIconPath,
       getNotificationSettings: () =>
         getStore().get<AppConfigSettings>('app_config')?.notificationSettings,
       focusMainWindow: focusMainWindowForReason,
@@ -3295,7 +3320,7 @@ if (!gotTheLock) {
   ipcMain.on('network:status-change', (_event, status: 'online' | 'offline') => {
     console.log(`[Main] Network status changed: ${status}`);
 
-    if (status === 'online' && imGatewayManager) {
+    if (status === 'online' && imGatewayManager && branding.showImChannels) {
       console.log('[Main] Network restored, reconnecting IM gateways...');
       imGatewayManager.reconnectAllDisconnected();
     }
@@ -3597,6 +3622,7 @@ if (!gotTheLock) {
    * Helper: Fetch with Bearer token, auto-refresh on 401 and retry once.
    */
   const fetchWithAuth = async (url: string, options?: RequestInit): Promise<Response> => {
+    if (isCloudServicesDisabled()) throw new Error('Cloud services are disabled');
     const tokens = getAuthTokens();
     if (!tokens) throw new Error('No auth tokens');
 
@@ -6372,7 +6398,11 @@ if (!gotTheLock) {
         if (shouldSyncOpenClawConfig) {
           syncOpenClawConfig({
             reason: workingDirectoryChanged ? 'agent-working-directory-updated' : 'agent-updated',
-            restartGatewayIfRunning: workingDirectoryChanged,
+            // A working-directory change only affects the cwd of the next session
+            // (resolved per-session from the agent record), so just sync the config.
+            // Restarting the gateway here forces a disruptive full client reload, and
+            // the cowork-config path already treats workingDirectory as sync-only.
+            restartGatewayIfRunning: false,
           }).catch(err => {
             console.error('[OpenClaw] config sync after agent update failed:', err);
           });
@@ -6927,6 +6957,114 @@ if (!gotTheLock) {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get memory stats',
       };
+    }
+  });
+  // ── Knowledge bases ───────────────────────────────────────────────────
+  const getKbRoot = () => ensureKnowledgeBasesRoot(getOpenClawEngineManager().getStateDir());
+  const kbError = (error: unknown, fallback: string) => ({
+    success: false as const,
+    error: error instanceof Error ? error.message : fallback,
+  });
+
+  ipcMain.handle('cowork:kb:list', async () => {
+    try {
+      return { success: true, knowledgeBases: listKnowledgeBases(getKbRoot()) };
+    } catch (error) {
+      return kbError(error, 'Failed to list knowledge bases');
+    }
+  });
+  ipcMain.handle('cowork:kb:create', async (_event, input: { name: string }) => {
+    try {
+      return { success: true, knowledgeBase: createKnowledgeBase(getKbRoot(), input.name) };
+    } catch (error) {
+      return kbError(error, 'Failed to create knowledge base');
+    }
+  });
+  ipcMain.handle('cowork:kb:rename', async (_event, input: { id: string; name: string }) => {
+    try {
+      return { success: true, knowledgeBase: renameKnowledgeBase(getKbRoot(), input.id, input.name) };
+    } catch (error) {
+      return kbError(error, 'Failed to rename knowledge base');
+    }
+  });
+  ipcMain.handle('cowork:kb:delete', async (_event, input: { id: string }) => {
+    try {
+      const deleted = deleteKnowledgeBase(getKbRoot(), input.id);
+      return deleted ? { success: true } : { success: false, error: 'Knowledge base not found' };
+    } catch (error) {
+      return kbError(error, 'Failed to delete knowledge base');
+    }
+  });
+  ipcMain.handle('cowork:kb:listDocs', async (_event, input: { id: string }) => {
+    try {
+      return { success: true, docs: listKnowledgeBaseDocs(getKbRoot(), input.id) };
+    } catch (error) {
+      return kbError(error, 'Failed to list knowledge base documents');
+    }
+  });
+  ipcMain.handle('cowork:kb:importDocs', async (event, input: { id: string; filePaths: string[] }) => {
+    try {
+      const inputPaths = Array.isArray(input.filePaths) ? input.filePaths : [];
+      // Expand folders into their supported files (recursively).
+      const candidates = collectKnowledgeBaseImportFiles(inputPaths);
+      const results = await importKnowledgeBaseDocs(
+        getKbRoot(),
+        input.id,
+        candidates.files,
+        (done, total, sourcePath) => {
+          try {
+            event.sender.send('cowork:kb:importProgress', {
+              kbId: input.id,
+              done,
+              total,
+              fileName: path.basename(sourcePath),
+            });
+          } catch {
+            // Renderer may be gone mid-import; progress is best-effort.
+          }
+        },
+      );
+      return { success: true, results, skipped: candidates.skipped, truncated: candidates.truncated };
+    } catch (error) {
+      return kbError(error, 'Failed to import documents');
+    }
+  });
+  ipcMain.handle('cowork:kb:readDoc', async (_event, input: { id: string; fileName: string }) => {
+    try {
+      return { success: true, content: readKnowledgeBaseDoc(getKbRoot(), input.id, input.fileName) };
+    } catch (error) {
+      return kbError(error, 'Failed to read document');
+    }
+  });
+  ipcMain.handle('cowork:kb:deleteDoc', async (_event, input: { id: string; fileName: string }) => {
+    try {
+      const deleted = deleteKnowledgeBaseDoc(getKbRoot(), input.id, input.fileName);
+      return deleted ? { success: true } : { success: false, error: 'Document not found' };
+    } catch (error) {
+      return kbError(error, 'Failed to delete document');
+    }
+  });
+  ipcMain.handle('cowork:kb:pickDocs', async () => {
+    try {
+      const window = BrowserWindow.getFocusedWindow() ?? undefined;
+      const result = await dialog.showOpenDialog(window as BrowserWindow, {
+        properties: ['openFile', 'multiSelections'],
+        filters: [{ name: 'Documents', extensions: ['md', 'txt', 'csv', 'docx', 'xlsx', 'xls', 'pdf'] }],
+      });
+      return { success: true, filePaths: result.canceled ? [] : result.filePaths };
+    } catch (error) {
+      return kbError(error, 'Failed to open file picker');
+    }
+  });
+  ipcMain.handle('cowork:kb:pickFolder', async () => {
+    try {
+      const window = BrowserWindow.getFocusedWindow() ?? undefined;
+      const result = await dialog.showOpenDialog(window as BrowserWindow, {
+        properties: ['openDirectory'],
+      });
+      return { success: true, folderPaths: result.canceled ? [] : result.filePaths };
+    } catch (error) {
+      return kbError(error, 'Failed to open folder picker');
     }
   });
   // ── Dreaming content display ──────────────────────────────────────────
@@ -10136,6 +10274,20 @@ if (!gotTheLock) {
     }
     profiler.measure('enterpriseConfigSync');
 
+    // GS 服务端对接（登录 + 配置下发），依赖上面同步好的 enterprise_config
+    initGsServerAuth(store);
+    // 预览文件分享到企业微信/微信（剪贴板中转 + 协议拉起）
+    registerWechatShareIpc();
+    // 登录/刷新成功后：同步服务端下发的 skill + 应用云端模型配置 + 检查应用更新
+    // （更新检查由此驱动：发现新版本先提醒，到了服务端限定的下载时间自动开始下载）
+    setGsPostSyncHook(() => {
+      void syncServerSkills(getSkillManager());
+      void applyGsCloudModels(getStore(), (options) => syncOpenClawConfig(options));
+      void getAppUpdateCoordinator().checkFromGsConfigRefresh().catch((error) => {
+        console.warn('[AppUpdate] post-sync update check failed:', error);
+      });
+    });
+
     bindCoworkRuntimeForwarder();
     bindOpenClawStatusForwarder();
 
@@ -10225,6 +10377,16 @@ if (!gotTheLock) {
     // sees the loading UI within ~1-2 s instead of waiting for the full
     // skill bootstrap (~6-8 s previously).
     setContentSecurityPolicy();
+    // Fully-offline white-label: hard-block any request to LobsterAI/Youdao cloud
+    // hosts at the network layer as a final catch-all. The model gateway runs on a
+    // different host and is unaffected. Covers Electron net.fetch + session fetch +
+    // renderer requests, even if a URL ever bypasses endpoints.ts.
+    if (isCloudServicesDisabled()) {
+      session.defaultSession.webRequest.onBeforeRequest(
+        { urls: ['*://*.youdao.com/*', '*://youdao.com/*'] },
+        (_details, callback) => callback({ cancel: true }),
+      );
+    }
     registerVoiceInputPermissionHandler({
       session: session.defaultSession,
       getMainWindow: () => mainWindow,
@@ -10327,12 +10489,15 @@ if (!gotTheLock) {
       handleDeepLink(coldStartDeepLink);
     }
 
-    // Auto-reconnect IM bots that were enabled before restart
-    getIMGatewayManager()
-      .startAllEnabled()
-      .catch(error => {
-        console.error('[IM] Failed to auto-start enabled gateways:', error);
-      });
+    // Auto-reconnect IM bots that were enabled before restart.
+    // Skipped entirely when the white-label disables IM channels.
+    if (branding.showImChannels) {
+      getIMGatewayManager()
+        .startAllEnabled()
+        .catch(error => {
+          console.error('[IM] Failed to auto-start enabled gateways:', error);
+        });
+    }
 
     // Reconnect OpenClaw gateway WS after system wake from sleep/suspend
     powerMonitor.on('resume', () => {

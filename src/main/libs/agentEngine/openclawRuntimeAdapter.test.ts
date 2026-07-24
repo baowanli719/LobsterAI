@@ -160,6 +160,31 @@ test('outbound prompt includes selected assistant text as quoted reference data'
   );
 });
 
+test('outbound prompt asks the agent to use Simplified Chinese by default', async () => {
+  const adapter = new OpenClawRuntimeAdapter({
+    getSession: () => null,
+    getAgent: () => null,
+  } as never, {} as never);
+  const internal = adapter as unknown as {
+    bridgedSessions: Set<string>;
+    buildOutboundPrompt: (
+      sessionId: string,
+      prompt: string,
+      systemPrompt?: string,
+      agentId?: string,
+    ) => Promise<string>;
+  };
+  internal.bridgedSessions.add('session-1');
+
+  const prompt = await internal.buildOutboundPrompt('session-1', '帮我整理表格');
+
+  expect(prompt).toContain('[LobsterAI 输出语言要求');
+  expect(prompt).toContain('所有面向用户的文字都必须使用简体中文');
+  expect(prompt).toContain('工具调用前的说明（preamble）');
+  // The language directive must be the final section so it carries the most weight.
+  expect(prompt.trimEnd().endsWith('仅当用户明确要求使用其它语言时，才对相应内容改用该语言。')).toBe(true);
+});
+
 test('outbound prompt injects continuity capsule bridge before the current request', async () => {
   const adapter = new OpenClawRuntimeAdapter({
     getSession: () => null,

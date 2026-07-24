@@ -112,6 +112,42 @@ contextBridge.exposeInMainWorld('electron', {
   enterprise: {
     getConfig: () => ipcRenderer.invoke('enterprise:getConfig'),
   },
+  wechatShare: {
+    // 预览文件发送到企业微信/微信：文件放剪贴板 + 拉起客户端，用户粘贴发送
+    send: (filePath: string, target: 'wecom' | 'wechat') =>
+      ipcRenderer.invoke('wechatShare:send', { filePath, target }),
+  },
+  gsAuth: {
+    getState: () => ipcRenderer.invoke('gsAuth:getState'),
+    login: (username: string, password: string) =>
+      ipcRenderer.invoke('gsAuth:login', { username, password }),
+    logout: () => ipcRenderer.invoke('gsAuth:logout'),
+    refresh: () => ipcRenderer.invoke('gsAuth:refresh'),
+    setServerUrl: (url: string) => ipcRenderer.invoke('gsAuth:setServerUrl', { url }),
+    changePassword: (oldPassword: string, newPassword: string) =>
+      ipcRenderer.invoke('gsAuth:changePassword', { oldPassword, newPassword }),
+    submitFeedback: (content: string, contact: string) =>
+      ipcRenderer.invoke('gsAuth:submitFeedback', { content, contact }),
+    wecomAvailable: () => ipcRenderer.invoke('gsAuth:wecomAvailable'),
+    wecomLogin: () => ipcRenderer.invoke('gsAuth:wecomLogin'),
+    getLoginMethods: () => ipcRenderer.invoke('gsAuth:getLoginMethods'),
+    emailSendCode: (account: string) => ipcRenderer.invoke('gsAuth:emailSendCode', { account }),
+    emailLogin: (account: string, code: string) =>
+      ipcRenderer.invoke('gsAuth:emailLogin', { account, code }),
+    logChat: (payload: { sessionId?: string; model?: string; promptSummary?: string }) =>
+      ipcRenderer.invoke('gsAuth:logChat', payload),
+    onStateChanged: (callback: (state: unknown) => void) => {
+      const handler = (_event: unknown, state: unknown) => callback(state);
+      ipcRenderer.on('gsAuth:stateChanged', handler);
+      return () => ipcRenderer.removeListener('gsAuth:stateChanged', handler);
+    },
+    // 云端模型配置写入 app_config 后触发，渲染进程据此重载模型列表
+    onModelsApplied: (callback: () => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('gsAuth:modelsApplied', handler);
+      return () => ipcRenderer.removeListener('gsAuth:modelsApplied', handler);
+    },
+  },
   api: {
     // 普通 API 请求（非流式）
     fetch: (options: {
@@ -451,6 +487,30 @@ contextBridge.exposeInMainWorld('electron', {
     deleteMemoryEntry: (input: { id: string }) =>
       ipcRenderer.invoke('cowork:memory:deleteEntry', input),
     getMemoryStats: () => ipcRenderer.invoke('cowork:memory:getStats'),
+    listKnowledgeBases: () => ipcRenderer.invoke('cowork:kb:list'),
+    createKnowledgeBase: (input: { name: string }) => ipcRenderer.invoke('cowork:kb:create', input),
+    renameKnowledgeBase: (input: { id: string; name: string }) =>
+      ipcRenderer.invoke('cowork:kb:rename', input),
+    deleteKnowledgeBase: (input: { id: string }) => ipcRenderer.invoke('cowork:kb:delete', input),
+    listKnowledgeBaseDocs: (input: { id: string }) => ipcRenderer.invoke('cowork:kb:listDocs', input),
+    importKnowledgeBaseDocs: (input: { id: string; filePaths: string[] }) =>
+      ipcRenderer.invoke('cowork:kb:importDocs', input),
+    readKnowledgeBaseDoc: (input: { id: string; fileName: string }) =>
+      ipcRenderer.invoke('cowork:kb:readDoc', input),
+    deleteKnowledgeBaseDoc: (input: { id: string; fileName: string }) =>
+      ipcRenderer.invoke('cowork:kb:deleteDoc', input),
+    pickKnowledgeBaseDocs: () => ipcRenderer.invoke('cowork:kb:pickDocs'),
+    pickKnowledgeBaseFolder: () => ipcRenderer.invoke('cowork:kb:pickFolder'),
+    onKnowledgeBaseImportProgress: (
+      callback: (data: { kbId: string; done: number; total: number; fileName: string }) => void,
+    ) => {
+      const handler = (
+        _event: any,
+        data: { kbId: string; done: number; total: number; fileName: string },
+      ) => callback(data);
+      ipcRenderer.on('cowork:kb:importProgress', handler);
+      return () => ipcRenderer.removeListener('cowork:kb:importProgress', handler);
+    },
     getDreamingStatus: () => ipcRenderer.invoke('cowork:dreaming:status'),
     getDreamDiary: () => ipcRenderer.invoke('cowork:dreaming:diary'),
     readBootstrapFile: (filename: string) => ipcRenderer.invoke('cowork:bootstrap:read', filename),

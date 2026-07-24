@@ -14,7 +14,6 @@ interface PendingCompletionNotification {
 
 interface TaskCompletionNotifierOptions {
   getWindow: () => BrowserWindow | null;
-  getNotificationIconPath: () => string | null;
   getNotificationSettings: () => Partial<NotificationSettings> | undefined;
   focusMainWindow: (reason: string) => void;
   openSession: (sessionId: string) => void;
@@ -101,7 +100,6 @@ export class TaskCompletionNotifier {
       const notification = new Notification({
         title: t('taskCompletionNotificationTitle'),
         body: t('taskCompletionNotificationBody'),
-        icon: this.getNotificationIcon(),
       });
       notification.on('click', () => {
         console.log(`[TaskCompletionNotifier] system notification clicked for session ${sessionId}`);
@@ -150,13 +148,6 @@ export class TaskCompletionNotifier {
     } catch (error) {
       console.warn('[TaskCompletionNotifier] failed to update Windows taskbar attention state:', error);
     }
-  }
-
-  private getNotificationIcon(): Electron.NativeImage | undefined {
-    const iconPath = this.options.getNotificationIconPath();
-    if (!iconPath) return undefined;
-    const image = nativeImage.createFromPath(iconPath);
-    return image.isEmpty() ? undefined : image;
   }
 
   private closeNotification(sessionId: string): void {

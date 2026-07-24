@@ -787,6 +787,56 @@ interface IElectronAPI {
     }) => Promise<{ success: boolean; entry?: CoworkUserMemoryEntry; error?: string }>;
     deleteMemoryEntry: (input: { id: string }) => Promise<{ success: boolean; error?: string }>;
     getMemoryStats: () => Promise<{ success: boolean; stats?: CoworkMemoryStats; error?: string }>;
+    listKnowledgeBases: () => Promise<{
+      success: boolean;
+      knowledgeBases?: import('./knowledgeBase').KnowledgeBaseSummary[];
+      error?: string;
+    }>;
+    createKnowledgeBase: (input: { name: string }) => Promise<{
+      success: boolean;
+      knowledgeBase?: import('./knowledgeBase').KnowledgeBaseSummary;
+      error?: string;
+    }>;
+    renameKnowledgeBase: (input: { id: string; name: string }) => Promise<{
+      success: boolean;
+      knowledgeBase?: import('./knowledgeBase').KnowledgeBaseSummary;
+      error?: string;
+    }>;
+    deleteKnowledgeBase: (input: { id: string }) => Promise<{ success: boolean; error?: string }>;
+    listKnowledgeBaseDocs: (input: { id: string }) => Promise<{
+      success: boolean;
+      docs?: import('./knowledgeBase').KnowledgeBaseDoc[];
+      error?: string;
+    }>;
+    importKnowledgeBaseDocs: (input: { id: string; filePaths: string[] }) => Promise<{
+      success: boolean;
+      results?: import('./knowledgeBase').KnowledgeBaseImportResult[];
+      skipped?: number;
+      truncated?: boolean;
+      error?: string;
+    }>;
+    readKnowledgeBaseDoc: (input: { id: string; fileName: string }) => Promise<{
+      success: boolean;
+      content?: string;
+      error?: string;
+    }>;
+    deleteKnowledgeBaseDoc: (input: { id: string; fileName: string }) => Promise<{
+      success: boolean;
+      error?: string;
+    }>;
+    pickKnowledgeBaseDocs: () => Promise<{
+      success: boolean;
+      filePaths?: string[];
+      error?: string;
+    }>;
+    pickKnowledgeBaseFolder: () => Promise<{
+      success: boolean;
+      folderPaths?: string[];
+      error?: string;
+    }>;
+    onKnowledgeBaseImportProgress: (
+      callback: (data: { kbId: string; done: number; total: number; fileName: string }) => void,
+    ) => () => void;
     readBootstrapFile: (
       filename: string,
     ) => Promise<{ success: boolean; content: string; error?: string }>;
@@ -1393,6 +1443,35 @@ interface IElectronAPI {
       version: string;
       name: string;
     } | null>;
+  };
+  wechatShare: {
+    /** 预览文件发送到企业微信/微信：文件放剪贴板 + 拉起客户端，用户在聊天窗口粘贴发送 */
+    send: (filePath: string, target: 'wecom' | 'wechat') => Promise<{
+      success: boolean;
+      code?: 'FILE_NOT_FOUND' | 'NOT_INSTALLED' | 'CLIPBOARD_FAILED' | 'LAUNCH_FAILED' | 'UNSUPPORTED_PLATFORM';
+    }>;
+  };
+  gsAuth: {
+    getState: () => Promise<import('../store/slices/gsAuthSlice').GsAuthState>;
+    login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+    logout: () => Promise<void>;
+    refresh: () => Promise<import('../store/slices/gsAuthSlice').GsAuthState>;
+    setServerUrl: (url: string) => Promise<{ success: boolean; message?: string }>;
+    changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+    submitFeedback: (content: string, contact: string) => Promise<{ success: boolean; message?: string }>;
+    wecomAvailable: () => Promise<boolean>;
+    wecomLogin: () => Promise<{ success: boolean; message?: string }>;
+    getLoginMethods: () => Promise<{ password: boolean; wecom: boolean; email: boolean }>;
+    emailSendCode: (
+      account: string,
+    ) => Promise<{ success: boolean; maskedEmail?: string; resendIn?: number; message?: string }>;
+    emailLogin: (account: string, code: string) => Promise<{ success: boolean; message?: string }>;
+    logChat: (payload: { sessionId?: string; model?: string; promptSummary?: string }) => Promise<void>;
+    onStateChanged: (
+      callback: (state: import('../store/slices/gsAuthSlice').GsAuthState) => void,
+    ) => () => void;
+    /** 云端模型配置已写入 app_config，渲染进程应重载模型列表 */
+    onModelsApplied: (callback: () => void) => () => void;
   };
   networkStatus: {
     send: (status: 'online' | 'offline') => void;

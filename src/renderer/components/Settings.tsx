@@ -2,7 +2,9 @@ import { ArchiveBoxIcon, ArrowPathIcon, ArrowPathRoundedSquareIcon, ChatBubbleLe
 import React, { useCallback,useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { aboutConfig, type AboutInfoItem,AboutInfoItemAction } from '../../shared/about';
 import { type AppUpdateInfo,type AppUpdateRuntimeState,AppUpdateSource,AppUpdateStatus } from '../../shared/appUpdate/constants';
+import { branding } from '../../shared/branding';
 import {
   type BrowserWebAccessConfig,
   defaultBrowserWebAccessConfig,
@@ -354,11 +356,6 @@ interface ProvidersImportPayload {
   };
   providers?: Record<string, ProvidersImportEntry>;
 }
-
-const ABOUT_CONTACT_EMAIL = 'lobsterai.project@rd.netease.com';
-const ABOUT_USER_MANUAL_URL = 'https://lobsterai.youdao.com/#/docs/lobsterai_user_manual';
-const ABOUT_USER_COMMUNITY_URL = 'https://lobsterai.youdao.com/#/about';
-const ABOUT_SERVICE_TERMS_URL = 'https://c.youdao.com/dict/hardware/lobsterai/lobsterai_service.html';
 
 // MiniMax Portal OAuth constants
 const MINIMAX_OAUTH_CLIENT_ID = '78257093-7e40-4613-99e0-527b14b39113';
@@ -791,7 +788,7 @@ const Settings: React.FC<SettingsProps> = ({
   // 创建引用来确保内容区域的滚动
   const contentRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const emailCopiedTimerRef = useRef<number | null>(null);
+  const aboutCopiedTimerRef = useRef<number | null>(null);
   const openClawGatewayCopiedTimerRef = useRef<number | null>(null);
   const updateCheckTimerRef = useRef<number | null>(null);
 
@@ -819,7 +816,7 @@ const Settings: React.FC<SettingsProps> = ({
 
   // About tab
   const [appVersion, setAppVersion] = useState('');
-  const [emailCopied, setEmailCopied] = useState(false);
+  const [copiedAboutItemId, setCopiedAboutItemId] = useState<string | null>(null);
   const [isExportingLogs, setIsExportingLogs] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [logoClickCount, setLogoClickCount] = useState(0);
@@ -872,16 +869,16 @@ const Settings: React.FC<SettingsProps> = ({
     };
   }, []);
 
-  const handleCopyContactEmail = useCallback(async () => {
-    const copied = await copyTextToClipboard(ABOUT_CONTACT_EMAIL);
+  const handleCopyAboutItem = useCallback(async (item: AboutInfoItem) => {
+    const copied = await copyTextToClipboard(item.value);
     if (copied) {
-      setEmailCopied(true);
-      if (emailCopiedTimerRef.current != null) {
-        window.clearTimeout(emailCopiedTimerRef.current);
+      setCopiedAboutItemId(item.id);
+      if (aboutCopiedTimerRef.current != null) {
+        window.clearTimeout(aboutCopiedTimerRef.current);
       }
-      emailCopiedTimerRef.current = window.setTimeout(() => {
-        setEmailCopied(false);
-        emailCopiedTimerRef.current = null;
+      aboutCopiedTimerRef.current = window.setTimeout(() => {
+        setCopiedAboutItemId(null);
+        aboutCopiedTimerRef.current = null;
       }, 1200);
     }
   }, []);
@@ -948,16 +945,8 @@ const Settings: React.FC<SettingsProps> = ({
     return i18nService.t('checkForUpdate');
   }, [appUpdateState?.progress?.percent, updateCheckStatus]);
 
-  const handleOpenUserManual = useCallback(() => {
-    void window.electron.shell.openExternal(ABOUT_USER_MANUAL_URL);
-  }, []);
-
-  const handleOpenUserCommunity = useCallback(() => {
-    void window.electron.shell.openExternal(ABOUT_USER_COMMUNITY_URL);
-  }, []);
-
-  const handleOpenServiceTerms = useCallback(() => {
-    void window.electron.shell.openExternal(ABOUT_SERVICE_TERMS_URL);
+  const handleOpenAboutUrl = useCallback((url: string) => {
+    void window.electron.shell.openExternal(url);
   }, []);
 
   const handleExportLogs = useCallback(async () => {
@@ -1070,8 +1059,8 @@ const Settings: React.FC<SettingsProps> = ({
   ]);
 
   useEffect(() => () => {
-    if (emailCopiedTimerRef.current != null) {
-      window.clearTimeout(emailCopiedTimerRef.current);
+    if (aboutCopiedTimerRef.current != null) {
+      window.clearTimeout(aboutCopiedTimerRef.current);
     }
     if (openClawGatewayCopiedTimerRef.current != null) {
       window.clearTimeout(openClawGatewayCopiedTimerRef.current);
@@ -3158,19 +3147,31 @@ const Settings: React.FC<SettingsProps> = ({
       { key: 'shortcuts' as TabType,      label: i18nService.t('shortcuts'),      icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5"><rect x="2" y="4" width="20" height="14" rx="2" /><line x1="6" y1="8" x2="8" y2="8" /><line x1="10" y1="8" x2="12" y2="8" /><line x1="14" y1="8" x2="16" y2="8" /><line x1="6" y1="12" x2="8" y2="12" /><line x1="10" y1="12" x2="14" y2="12" /><line x1="16" y1="12" x2="18" y2="12" /><line x1="8" y1="15.5" x2="16" y2="15.5" /></svg> },
       { key: 'about' as TabType,          label: i18nService.t('about'),          icon: <InformationCircleIcon className="h-5 w-5" /> },
     ];
+    // Hide IM bot channels entirely when the white-label disables them.
+    const brandedTabs = allTabs.filter(tab => branding.showImChannels || tab.key !== 'im');
     // Filter out tabs hidden by enterprise config
     // Filter out tabs with 'hide' action in enterprise config
     // e.g., ui: { "settings.im": "hide" } → hide the 'im' tab
     const ui = enterpriseConfig?.ui;
     if (ui) {
-      return allTabs.filter(tab => ui[`settings.${tab.key}`] !== 'hide');
+      return brandedTabs.filter(tab => ui[`settings.${tab.key}`] !== 'hide');
     }
-    return allTabs;
+    return brandedTabs;
   })();
 
   const activeTabLabel = useMemo(() => {
     return sidebarTabs.find(t => t.key === activeTab)?.label ?? '';
   }, [activeTab, sidebarTabs]);
+
+  // 企业/服务端配置把当前页标记为 readonly 时整页只读
+  const activeTabReadonly = enterpriseConfig?.ui?.[`settings.${activeTab}`] === 'readonly';
+
+  // 配置刷新后当前页可能被隐藏（例如服务端下发 hidden），退回第一个可见页
+  useEffect(() => {
+    if (sidebarTabs.length > 0 && !sidebarTabs.some(tab => tab.key === activeTab)) {
+      setActiveTab(sidebarTabs[0].key);
+    }
+  }, [sidebarTabs, activeTab]);
 
   useEffect(() => {
     const handleSettingsTabShortcut = (event: KeyboardEvent) => {
@@ -3358,6 +3359,68 @@ const Settings: React.FC<SettingsProps> = ({
       </div>
     </div>
   );
+
+  const getAboutLabel = (label: { zh: string; en: string }): string => (
+    language === 'en' ? label.en : label.zh
+  );
+
+  const renderAboutInfoItem = (item: AboutInfoItem, index: number) => {
+    const hasFollowingRow = index < aboutConfig.infoItems.length - 1 || testModeUnlocked;
+    const rowClassName = `flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3${
+      hasFollowingRow ? ' border-b border-border' : ''
+    }`;
+    const valueClassName = 'min-w-0 break-all text-right text-sm text-secondary';
+
+    let valueNode: React.ReactNode;
+    if (item.action === AboutInfoItemAction.Copy) {
+      valueNode = (
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleCopyAboutItem(item);
+            }}
+            title={i18nService.t('copyToClipboard')}
+            className={`${valueClassName} bg-transparent border-none appearance-none p-0 m-0 cursor-pointer focus:outline-none`}
+          >
+            {item.value}
+          </button>
+          {copiedAboutItemId === item.id && (
+            <span className="text-[11px] leading-4 text-emerald-600 dark:text-emerald-400">
+              {i18nService.t('copied')}
+            </span>
+          )}
+        </div>
+      );
+    } else if (item.action === AboutInfoItemAction.OpenExternal) {
+      valueNode = (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            handleOpenAboutUrl(item.value);
+          }}
+          className={`${valueClassName} hover:text-primary dark:hover:text-primary bg-transparent border-none appearance-none px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-md cursor-pointer focus:outline-none hover:bg-surface-raised transition-colors`}
+        >
+          {item.value}
+        </button>
+      );
+    } else {
+      valueNode = (
+        <span className={valueClassName}>
+          {item.value}
+        </span>
+      );
+    }
+
+    return (
+      <div key={item.id} className={rowClassName}>
+        <span className="shrink-0 text-sm text-foreground">{getAboutLabel(item.label)}</span>
+        {valueNode}
+      </div>
+    );
+  };
 
   const renderTabContent = () => {
     switch(activeTab) {
@@ -4017,7 +4080,7 @@ const Settings: React.FC<SettingsProps> = ({
         );
 
       case 'im':
-        return <IMSettings />;
+        return branding.showImChannels ? <IMSettings /> : null;
 
       case 'plugins':
         return (
@@ -4031,8 +4094,8 @@ const Settings: React.FC<SettingsProps> = ({
           <div className="flex min-h-full flex-col items-center pt-6 pb-3">
             {/* Logo & App Name */}
             <img
-              src="logo.png"
-              alt="LobsterAI"
+              src={branding.logo}
+              alt={branding.appName}
               className="w-16 h-16 mb-3 cursor-pointer select-none"
               onClick={(e) => {
                 if (!e.altKey || !e.shiftKey) return;
@@ -4044,7 +4107,7 @@ const Settings: React.FC<SettingsProps> = ({
                 }
               }}
             />
-            <h3 className="text-lg font-semibold text-foreground">LobsterAI</h3>
+            <h3 className="text-lg font-semibold text-foreground">{aboutConfig.productName}</h3>
             <span className="text-xs text-secondary mt-1">v{appVersion}</span>
 
             {/* Info Card */}
@@ -4053,7 +4116,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <span className="shrink-0 text-sm text-foreground">{i18nService.t('aboutVersion')}</span>
                 <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
                   <span className="text-sm text-secondary">{appVersion}</span>
-                  {!enterpriseConfig?.disableUpdate && (
+                  {aboutConfig.showUpdateCheck && !enterpriseConfig?.disableUpdate && (
                   <button
                     type="button"
                     disabled={updateCheckStatus === 'checking' || updateCheckStatus === 'downloading'}
@@ -4066,60 +4129,14 @@ const Settings: React.FC<SettingsProps> = ({
                     {updateButtonLabel}
                   </button>
                   )}
-                  {enterpriseConfig?.disableUpdate && (
+                  {aboutConfig.showUpdateCheck && enterpriseConfig?.disableUpdate && (
                   <span className="text-xs text-claude-textSecondary dark:text-claude-darkTextSecondary">
                     {i18nService.t('settings.enterprise.managed')}
                   </span>
                   )}
                 </div>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b border-border">
-                <span className="shrink-0 text-sm text-foreground">{i18nService.t('aboutContactEmail')}</span>
-                <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleCopyContactEmail();
-                    }}
-                    title={i18nService.t('copyToClipboard')}
-                    className="min-w-0 break-all text-right text-sm text-secondary bg-transparent border-none appearance-none p-0 m-0 cursor-pointer focus:outline-none"
-                  >
-                    {ABOUT_CONTACT_EMAIL}
-                  </button>
-                  {emailCopied && (
-                    <span className="text-[11px] leading-4 text-emerald-600 dark:text-emerald-400">
-                      {i18nService.t('copied')}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b border-border">
-                <span className="shrink-0 text-sm text-foreground">{i18nService.t('aboutUserCommunity')}</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenUserCommunity();
-                  }}
-                  className="min-w-0 break-all text-right text-sm text-secondary hover:text-primary dark:hover:text-primary bg-transparent border-none appearance-none px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-md cursor-pointer focus:outline-none hover:bg-surface-raised transition-colors"
-                >
-                  {ABOUT_USER_COMMUNITY_URL}
-                </button>
-              </div>
-              <div className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3${testModeUnlocked ? ' border-b border-border' : ''}`}>
-                <span className="shrink-0 text-sm text-foreground">{i18nService.t('aboutUserManual')}</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenUserManual();
-                  }}
-                  className="min-w-0 break-all text-right text-sm text-secondary hover:text-primary dark:hover:text-primary bg-transparent border-none appearance-none px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-md cursor-pointer focus:outline-none hover:bg-surface-raised transition-colors"
-                >
-                  {ABOUT_USER_MANUAL_URL}
-                </button>
-              </div>
+              {aboutConfig.infoItems.map(renderAboutInfoItem)}
               {testModeUnlocked && (
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
                   <span className="shrink-0 text-sm text-foreground">{i18nService.t('testMode')}</span>
@@ -4145,35 +4162,44 @@ const Settings: React.FC<SettingsProps> = ({
             {/* Footer */}
             <div className="mt-auto w-full pt-14 pb-2 flex flex-col items-center">
               <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-secondary">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenServiceTerms();
-                  }}
-                  className="bg-transparent border-none appearance-none px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-md cursor-pointer hover:text-primary dark:hover:text-primary transition-colors"
-                >
-                  {i18nService.t('aboutServiceTerms')}
-                </button>
-                <span className="text-xs opacity-40">|</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleExportLogs();
-                  }}
-                  disabled={isExportingLogs}
-                  className="bg-transparent border-none appearance-none px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-md cursor-pointer hover:text-primary dark:hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isExportingLogs ? i18nService.t('aboutExportingLogs') : i18nService.t('aboutExportLogs')}
-                </button>
+                {aboutConfig.footerLinks.map((link, index) => (
+                  <React.Fragment key={link.id}>
+                    {index > 0 && <span className="text-xs opacity-40">|</span>}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenAboutUrl(link.url);
+                      }}
+                      className="bg-transparent border-none appearance-none px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-md cursor-pointer hover:text-primary dark:hover:text-primary transition-colors"
+                    >
+                      {getAboutLabel(link.label)}
+                    </button>
+                  </React.Fragment>
+                ))}
+                {aboutConfig.showExportLogs && aboutConfig.footerLinks.length > 0 && (
+                  <span className="text-xs opacity-40">|</span>
+                )}
+                {aboutConfig.showExportLogs && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleExportLogs();
+                    }}
+                    disabled={isExportingLogs}
+                    className="bg-transparent border-none appearance-none px-1.5 py-0.5 -mx-1.5 -my-0.5 rounded-md cursor-pointer hover:text-primary dark:hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isExportingLogs ? i18nService.t('aboutExportingLogs') : i18nService.t('aboutExportLogs')}
+                  </button>
+                )}
               </div>
 
               <p className="mt-5 text-center text-xs text-secondary">
                 {i18nService.t('copyrightHolder')}
               </p>
               <p className="mt-1 text-center text-xs text-secondary">
-                Copyright &copy; {new Date().getFullYear()} NetEase Youdao. All Rights Reserved.
+                Copyright &copy; {new Date().getFullYear()} {branding.company.en}. All Rights Reserved.
               </p>
             </div>
           </div>
@@ -4255,7 +4281,17 @@ const Settings: React.FC<SettingsProps> = ({
               className="px-6 py-4 flex-1 overflow-y-auto"
               style={{ scrollbarGutter: 'stable' }}
             >
-              {renderTabContent()}
+              {activeTabReadonly && (
+                <div className="mb-4 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-400">
+                  {i18nService.t('gsSettingsReadonly')}
+                </div>
+              )}
+              <fieldset
+                disabled={activeTabReadonly}
+                className={activeTabReadonly ? 'pointer-events-none opacity-60' : undefined}
+              >
+                {renderTabContent()}
+              </fieldset>
             </div>
 
             {/* Footer buttons */}
@@ -4269,7 +4305,7 @@ const Settings: React.FC<SettingsProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || activeTabReadonly}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {isSaving ? i18nService.t('saving') : i18nService.t('save')}

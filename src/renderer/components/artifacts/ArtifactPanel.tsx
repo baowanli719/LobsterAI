@@ -498,12 +498,15 @@ const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   const [htmlShareCopyStatus, setHtmlShareCopyStatus] =
     useState<HtmlShareCopyStatus>(HtmlShareCopyStatus.Idle);
   const [isArtifactActionsMenuOpen, setIsArtifactActionsMenuOpen] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [officePreviewZoomControls, setOfficePreviewZoomControls] =
     useState<OfficePreviewZoomControlsConfig | null>(null);
   const fileListDrawerRef = useRef<HTMLDivElement>(null);
   const fileListButtonRef = useRef<HTMLButtonElement>(null);
   const artifactActionsMenuRef = useRef<HTMLDivElement>(null);
   const artifactActionsMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+  const shareMenuButtonRef = useRef<HTMLButtonElement>(null);
   const fileListDrawerAnimationFrameRef = useRef<number | undefined>(undefined);
   const fileListDrawerCloseTimeoutRef = useRef<number | undefined>(undefined);
   const htmlShareCopyStatusTimerRef = useRef<number | undefined>(undefined);
@@ -605,6 +608,9 @@ const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       selectedShareLookupKey &&
       hasShareableArtifactSource(htmlShareArtifact, selectedShareSourceType),
   );
+  // 企微/微信分享走本地文件（剪贴板中转），有落盘路径即可
+  const canShareToWechat = Boolean(selectedArtifact?.filePath);
+  const showShareButton = canShareHtmlArtifact || canShareToWechat;
   const browserHtmlAutoRefreshFilePath =
     isBrowserTabActive && browserHtmlArtifact?.type === ArtifactTypeValue.Html
       ? browserHtmlArtifact.filePath
@@ -926,6 +932,34 @@ const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isArtifactActionsMenuOpen]);
+
+  useEffect(() => {
+    if (!isShareMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        shareMenuRef.current?.contains(target) ||
+        shareMenuButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setIsShareMenuOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsShareMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isShareMenuOpen]);
 
   useEffect(() => {
     if (!showFileListDrawer) return;
@@ -1780,6 +1814,32 @@ const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
     sessionId,
   ]);
 
+  /**
+   * 发送到企业微信/微信：主进程把文件放进剪贴板并拉起客户端，
+   * 这里根据结果 toast 引导用户粘贴发送或提示安装。
+   */
+  const handleShareToWechatApp = useCallback(async (target: 'wecom' | 'wechat') => {
+    setIsShareMenuOpen(false);
+    const filePath = selectedArtifact?.filePath;
+    if (!filePath) return;
+    const showToast = (message: string) =>
+      window.dispatchEvent(new CustomEvent('app:showToast', { detail: message }));
+    try {
+      const result = await window.electron?.wechatShare?.send(filePath, target);
+      if (result?.success) {
+        showToast(t(target === 'wecom' ? 'wechatShareReadyWecom' : 'wechatShareReadyWechat'));
+      } else if (result?.code === 'NOT_INSTALLED') {
+        showToast(t(target === 'wecom' ? 'wechatShareNotInstalledWecom' : 'wechatShareNotInstalledWechat'));
+      } else if (result?.code === 'UNSUPPORTED_PLATFORM') {
+        showToast(t('wechatShareUnsupported'));
+      } else {
+        showToast(t('wechatShareFailed'));
+      }
+    } catch {
+      showToast(t('wechatShareFailed'));
+    }
+  }, [selectedArtifact?.filePath]);
+
   const handleOpenWithApp = useCallback(() => {
     if (selectedArtifact?.filePath) {
       let filePath = selectedArtifact.filePath;
@@ -2063,16 +2123,61 @@ const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                   )}
                 </div>
               )}
-              {canShareHtmlArtifact && (
-                <button
-                  onClick={handleShareHtmlArtifact}
-                  disabled={isHtmlSharing}
-                  className={htmlShareButtonClass}
-                  aria-label={htmlShareButtonTitle}
-                  title={htmlShareButtonTitle}
-                >
-                  <ShareIcon />
-                </button>
+              {showShareButton && (
+                <div className="relative">
+                  <button
+                    ref={shareMenuButtonRef}
+                    onClick={() => setIsShareMenuOpen(value => !value)}
+                    disabled={isHtmlSharing}
+                    className={htmlShareButtonClass}
+                    aria-label={htmlShareButtonTitle}
+                    title={htmlShareButtonTitle}
+                  >
+                    <ShareIcon />
+                  </button>
+                  {isShareMenuOpen && (
+                    <div
+                      ref={shareMenuRef}
+                      className="absolute right-0 top-full z-30 mt-1 w-44 rounded-lg border border-border bg-background p-1 shadow-lg"
+                    >
+                      {canShareToWechat && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void handleShareToWechatApp('wecom')}
+                            className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs transition-colors hover:bg-surface"
+                          >
+                            <WecomIcon />
+                            <span>{t('artifactShareMenuWecom')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleShareToWechatApp('wechat')}
+                            className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs transition-colors hover:bg-surface"
+                          >
+                            <WechatIcon />
+                            <span>{t('artifactShareMenuWechat')}</span>
+                          </button>
+                        </>
+                      )}
+                      {canShareHtmlArtifact && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsShareMenuOpen(false);
+                            void handleShareHtmlArtifact();
+                          }}
+                          className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs transition-colors hover:bg-surface ${
+                            canShareToWechat ? 'mt-1 border-t border-border/70 pt-1.5' : ''
+                          }`}
+                        >
+                          <ShareIcon />
+                          <span>{t('artifactShareMenuLink')}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
               {isCompactHtmlToolbar && showOpenBrowserAction && (
                 <button
@@ -4255,6 +4360,41 @@ const ShareIcon = () => (
     <circle cx="11.5" cy="12" r="1.8" />
     <path d="M5.6 7.15l4.3-2.3" />
     <path d="M5.6 8.85l4.3 2.3" />
+  </svg>
+);
+
+/** 企业微信：双气泡 */
+const WecomIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6.5 2.5a4 4 0 0 0-3.2 6.4L2.5 11l2.3-.8a4 4 0 0 0 1.7.4" />
+    <path d="M8.5 6a3.5 3.5 0 1 1 2.6 5.9l-2 .7.7-1.9A3.5 3.5 0 0 1 8.5 6z" />
+  </svg>
+);
+
+/** 个人微信：单气泡 + 双眼 */
+const WechatIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M8 2.8c-3.2 0-5.5 2-5.5 4.6 0 1.5.8 2.8 2 3.6l-.5 2.2 2.4-1.2c.5.1 1 .2 1.6.2 3.2 0 5.5-2 5.5-4.7S11.2 2.8 8 2.8z" />
+    <circle cx="6" cy="7.2" r="0.5" fill="currentColor" stroke="none" />
+    <circle cx="10" cy="7.2" r="0.5" fill="currentColor" stroke="none" />
   </svg>
 );
 

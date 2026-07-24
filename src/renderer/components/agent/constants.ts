@@ -3,7 +3,6 @@ export const AgentDetailTab = {
   Identity: 'identity',
   User: 'user',
   Skills: 'skills',
-  Im: 'im',
 } as const;
 
 export type AgentDetailTab = typeof AgentDetailTab[keyof typeof AgentDetailTab];

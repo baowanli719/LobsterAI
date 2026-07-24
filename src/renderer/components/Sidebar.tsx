@@ -1,4 +1,4 @@
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { AgentId } from '@shared/agent';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -23,6 +23,7 @@ import MyAgentSidebarTree from './agentSidebar/MyAgentSidebarTree';
 import Modal from './common/Modal';
 import { CoworkUiEvent } from './cowork/constants';
 import CoworkSearchModal from './cowork/CoworkSearchModal';
+import GsLoginButton from './GsLoginButton';
 import Cog6ToothIcon from './icons/Cog6ToothIcon';
 import ComposeIcon from './icons/ComposeIcon';
 import SidebarAutomationIcon from './icons/SidebarAutomationIcon';
@@ -37,11 +38,12 @@ import LoginButton from './LoginButton';
 interface SidebarProps {
   onShowSettings: () => void;
   onShowLogin?: () => void;
-  activeView: 'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'mcp';
+  activeView: 'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'knowledgeBase' | 'mcp';
   onShowSkills: () => void;
   onShowCowork: () => void;
   onShowScheduledTasks: () => void;
   onShowKits: () => void;
+  onShowKnowledgeBase: () => void;
   onShowMcp: () => void;
   onNewChat: () => void;
   isCollapsed: boolean;
@@ -73,6 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onShowCowork,
   onShowScheduledTasks,
   onShowKits,
+  onShowKnowledgeBase,
   onShowMcp,
   onNewChat,
   isCollapsed,
@@ -82,6 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const currentAgentId = useSelector((state: RootState) => state.agent.currentAgentId);
   const agents = useSelector((state: RootState) => state.agent.agents);
+  const gsEnabled = useSelector((state: RootState) => state.gsAuth.enabled);
   const sessions = useSelector(selectCoworkSessions);
   const currentSessionId = useSelector(selectCurrentSessionId);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -442,6 +446,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             type="button"
             onClick={() => {
               setIsSearchOpen(false);
+              onShowKnowledgeBase();
+            }}
+            className={activeView === 'knowledgeBase' ? activeSidebarNavItemClassName : sidebarNavItemClassName}
+            aria-current={activeView === 'knowledgeBase' ? 'page' : undefined}
+          >
+            <BookOpenIcon className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 truncate">{i18nService.t('knowledgeBase')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchOpen(false);
               onShowSkills();
             }}
             className={activeView === 'skills' ? activeSidebarNavItemClassName : sidebarNavItemClassName}
@@ -561,10 +577,15 @@ const Sidebar: React.FC<SidebarProps> = ({
               <LoginButton />
             </div>
           )}
+          {gsEnabled && (
+            <div className="flex-1 min-w-0">
+              <GsLoginButton />
+            </div>
+          )}
           <button
             type="button"
             onClick={() => onShowSettings()}
-            className={`inline-flex h-7 items-center justify-start gap-1.5 rounded-md px-1.5 text-[14px] font-normal text-foreground/80 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04] ${hideLogin ? 'w-full' : 'shrink-0'}`}
+            className={`inline-flex h-7 items-center justify-start gap-1.5 rounded-md px-1.5 text-[14px] font-normal text-foreground/80 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04] ${hideLogin && !gsEnabled ? 'w-full' : 'shrink-0'}`}
             aria-label={i18nService.t('settings')}
           >
             <Cog6ToothIcon className="h-4 w-4 shrink-0" />

@@ -1,94 +1,89 @@
-# LobsterAI — All-Scenario Office Assistant Agent
+# GSAI Office Collaboration — Enterprise LobsterAI Edition
 
 <p align="center">
-  <img src="public/logo.png" alt="LobsterAI" width="120">
+  <img src="public/gszq1.png" alt="GSAI Office Collaboration" width="120">
 </p>
 
 <p align="center">
-  <strong>A 24/7 all-scenario office assistant Agent that gets real work done — built by NetEase Youdao</strong>
+  <strong>An enterprise desktop Agent customized for Guosheng Securities office and research workflows</strong>
 </p>
 
 <p align="center">
-  <em>The first open-source, desktop-grade Agent from a major Chinese tech company — publicly praised by OpenClaw's founder.</em>
+  <em><code>gsai-office-customization</code> branch · version 0.1.6</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/netease-youdao/LobsterAI/stargazers"><img src="https://img.shields.io/github/stars/netease-youdao/LobsterAI?style=for-the-badge&logo=github&color=FFD43B" alt="GitHub stars"></a>
-  <a href="https://github.com/netease-youdao/LobsterAI/releases"><img src="https://img.shields.io/github/v/release/netease-youdao/LobsterAI?style=for-the-badge&color=brightgreen" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
-  <br>
-  <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Version-0.1.6-C8102E?style=for-the-badge" alt="Version 0.1.6">
+  <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows" alt="Windows">
   <img src="https://img.shields.io/badge/Electron-40-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/netease-youdao/LobsterAI/releases"><strong>⬇️ Download</strong></a>
+  <a href="#quick-start"><strong>Quick Start</strong></a>
   &nbsp;·&nbsp;
-  <a href="#community"><strong>💬 Community</strong></a>
-  &nbsp;·&nbsp;
-  <a href="https://www.star-history.com/#netease-youdao/LobsterAI&type=date"><strong>⭐ Star History</strong></a>
+  <a href="#enterprise-configuration"><strong>Enterprise Configuration</strong></a>
   &nbsp;·&nbsp;
   English · <a href="README_zh.md">中文</a>
 </p>
 
 ---
 
-**LobsterAI** is an all-scenario office assistant Agent built by [NetEase Youdao](https://www.youdao.com/) — the first open-source, desktop-grade Agent from a major Chinese tech company. It works around the clock to get real work done: data analysis, slide decks, video generation, document writing, web research, email, scheduled jobs, and more.
+This branch customizes the open-source **LobsterAI** desktop Agent for an intranet deployment with enterprise identity, centralized governance, private knowledge, and securities research workflows. It retains Cowork, OpenClaw, local tool execution, Artifacts, persistent memory, and scheduled tasks while adding enterprise authentication, private knowledge bases, financial Skills, cloud-managed models and Skills, application updates, and notices.
 
-Unlike chat-only assistants, LobsterAI is **desktop-grade**. Through its **Cowork mode** it connects to your files, terminal, browser, and local projects — executing tools and running commands directly in your real working environment, with every sensitive action gated behind your approval. Spin up purpose-built Agents (stock research, content writing, lesson planning…), extend it with Expert Kits, Skills, and MCP servers, and reach it from your phone via WeChat, WeCom, DingTalk, Feishu, QQ, Telegram, Discord, and more — command your computer to work anytime, anywhere.
+The default branding configuration disables upstream Youdao cloud services, the IM settings page, voice input, and image/video model pickers. Conversations, knowledge bases, and most working data remain local; the enterprise service supplies identity, policy, and managed resources.
 
-## Why LobsterAI
+## Branch Highlights
 
-- **🔓 Open source, secure & trustworthy** — 100% open-source code with transparent capabilities; permissions, data, and execution flows are all auditable
-- **🖥️ Desktop-grade Agent** — Connects to your files, terminal, browser, and local projects, working directly inside your real environment instead of a sandboxed chat box
-- **🧩 OpenClaw ecosystem** — Built on the open-source OpenClaw Agent framework, with continuous access to new Skills, tools, MCP servers, and models
-- **📱 Command your computer from your phone** — Drive LobsterAI 24/7 through WeChat, WeCom, DingTalk, Feishu, QQ, Telegram, Discord, and more
-- **🔒 Local data, controlled actions** — Sessions, configuration, and memory stay on your device; every tool call is gated and logged
+- **Config-driven white label** — Product name, icons, installer filename, default workspace, and About-page details are centrally configurable
+- **Enterprise authentication** — Username/password, email verification, and WeCom login methods when enabled by the server, plus password changes and offline config fallback
+- **Central governance** — The server controls settings pages, submit permission, external Skill installation, Skill state, model configuration, application updates, and notices
+- **Private knowledge bases** — Create multiple local knowledge bases, import files or folders in batches, and explicitly reference them in Cowork prompts
+- **Financial research Skills** — Market quotes, movement attribution, macro news, themes, screening, stock/fund diagnosis, and GSAI chat
+- **Managed Skill lifecycle** — Server Skills sync by version; installed Skills report source, risk level, user identity, and `SKILL.md` content fingerprints
+- **Enhanced report writing** — `rich-report` is the default writing Skill with Word/Excel input, charts, and standardized report styling
+- **Intranet-first models** — An OpenAI-compatible internal provider can be pre-seeded and replaced by server-managed model configuration
 
-## Capabilities
+## Typical Scenarios
 
-- **All-scenario productivity** — Data analysis, PPT creation, video generation, document writing, web search, email — covering the full range of daily work
-- **Custom Agents** — Create purpose-built Agents (e.g. Stock Expert, Content Writer, Lesson Planner) each with its own identity, skills, and IM channels
-- **Expert Kits & Skills** — 28 built-in skills plus installable Expert Kits; build your own with `skill-creator` and hot-load at runtime
-- **MCP support** — Connect external tools and data sources through Model Context Protocol servers
-- **Scheduled tasks** — Create recurring jobs by conversation or GUI — daily news digests, inbox cleanup, periodic reports, and more
-- **Persistent memory** — Remembers your preferences and context across sessions via file-based memory; gets smarter the more you use it
-- **Local-first** — Run tasks directly on your machine
-- **Cross-platform** — macOS (Intel + Apple Silicon) and Windows desktop, plus mobile reach via IM
-- **Windows built-in Python runtime** — Windows packages bundle a ready-to-use Python interpreter; skill dependencies install on demand
-
-## Real-World Scenarios
-
-| Scenario | Example prompt |
-|----------|---------------|
-| **Build a full system from scratch** | "I run a small shop and still track stock and sales in Excel. Build me an inventory system: log purchases and sales, auto-calculate stock and profit, and let me open it locally." |
-| **Edit files, process data, build pages** | "Using the data in `product-growth.xlsx`, build me a visualization page." |
-| **Daily scheduled news digest** | "Every morning at 9, send me yesterday's AI news — especially OpenAI, Anthropic, Google and Chinese labs." |
-| **Deep research & PPT generation** | "Research the global AI Agent market landscape, and turn `traffic-report.pdf` into a report deck." |
-| **Browser automation** | "Open my ads dashboard every day, check whether spend, conversion, or cost-per-lead looks abnormal, and summarize the cause." |
-| **Resume screening & doc review** | "Turn the 50 resumes in this folder into a screening sheet, flag anyone missing the JD's hard requirements, then shortlist the best 10." |
-| **Keeps learning** | "From now on, keep every document you write for me clear, logical, and concise." — saved to long-term memory |
+| Scenario | Example |
+|----------|---------|
+| **Private-document Q&A** | Build policy or research knowledge bases from PDF, Word, Excel, CSV, Markdown, and text files, then reference them in a conversation |
+| **Market and movement analysis** | Combine market quotes, movement attribution, macro news, and themes into a research summary |
+| **Screening and diagnosis** | Use stock screening, stock diagnosis, fund selection, and fund diagnosis Skills |
+| **Automated reporting** | Turn local documents or Excel data into standardized Word reports and presentation decks |
+| **Managed enterprise configuration** | Apply server-delivered models, Skills, page permissions, submit policy, and update schedules after login |
+| **Continuous office automation** | Use local files, the terminal, browser, and scheduled tasks for recurring checks and deliverables |
 
 ## How It Works
 
-<p align="center">
-  <img src="docs/res/architecture_v2_en.png" alt="Architecture" width="500">
-</p>
+```mermaid
+flowchart LR
+  U[User] --> UI[GSAI desktop app]
+  UI --> C[Cowork / OpenClaw]
+  C --> L[Local files, terminal, browser]
+  C --> K[Private knowledge bases / memory_search]
+  UI --> G[GS enterprise service]
+  G --> A[Authentication and policy]
+  G --> M[Models, Skills, and app updates]
+  G --> N[Notices and page governance]
+```
 
 ## Quick Start
 
 ### Prerequisites
 
 - **Node.js** >= 24 < 25
-- **npm**
+- **npm** or **pnpm**
+- Windows packaging requires PowerShell, PortableGit, and installed project dependencies
 
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/netease-youdao/LobsterAI.git
+git clone https://github.com/baowanli719/LobsterAI.git
 cd LobsterAI
-npm install
+git checkout gsai-office-customization
+pnpm install
 ```
 
 ### 2. Start the app
@@ -109,8 +104,22 @@ it reuses the existing runtime and skips the OpenClaw build step:
 npm run electron:dev
 ```
 
-The Vite dev server runs at `http://localhost:5175`. By default the app connects to
-LobsterAI's **production** services, so no extra setup is needed to sign in and use it.
+The Vite dev server runs at `http://localhost:5175`. Before starting, verify the enterprise server and default-model configuration for the target environment. Do not commit real tokens, passwords, or production API keys.
+
+### Enterprise Configuration
+
+| File / entry point | Purpose |
+|--------------------|---------|
+| `src/shared/branding/branding.config.json` | Product name, logo, installer name, feature flags, and default GS server URL |
+| `src/shared/about/about.config.json` | About-page product name, maintenance owner, contacts, and links |
+| `src/shared/defaultModel/defaultModel.config.json` | OpenAI-compatible provider seeded on first launch; replace endpoint and credentials before deployment |
+| `enterprise-config/manifest.json` | Machine-level page controls, server URL locking, and OpenClaw/Skills/Agents/MCP/Plugins sync policy |
+| `SKILLs/skills.config.json` | Enabled state, ordering, and base display metadata for bundled Skills |
+| `GS_SERVER_URL` | Development-time enterprise server URL override |
+
+The enterprise server URL is resolved in this order: local user override, `enterprise-config/manifest.json`, the branding default, then `GS_SERVER_URL`. When the manifest sets `server.lockBaseUrl=true`, the login dialog cannot change the URL.
+
+If the enterprise service is unavailable, the client keeps the most recently synchronized user and policy configuration and enters offline mode. Operations that require online authentication or server authorization remain restricted.
 
 #### OpenClaw build options
 
@@ -213,6 +222,23 @@ Offline/runtime source options for packaging:
 
 </details>
 
+### Fast Windows Packaging
+
+When dependencies are unchanged and the OpenClaw runtime is ready, use the fast script to avoid an implicit package-manager reinstall or native rebuild during packaging:
+
+```powershell
+# Standard fast package
+.\scripts\dist-win-fast.ps1
+
+# Rebuild the OpenClaw runtime first
+.\scripts\dist-win-fast.ps1 -PrepareOpenClawRuntime
+
+# Incremental package: reuse renderer output and skip Skill builds
+.\scripts\dist-win-fast.ps1 -SkipRendererBuild -SkipSkills
+```
+
+The script raises the Node heap limit to 4 GB by default and calls the local toolchain directly. Run `pnpm install` manually whenever dependencies change.
+
 ## Architecture
 
 LobsterAI uses Electron's strict process isolation. All cross-process communication goes through IPC.
@@ -223,7 +249,9 @@ LobsterAI uses Electron's strict process isolation. All cross-process communicat
 - Window lifecycle management
 - SQLite persistence
 - OpenClaw agent engine (primary) + CoworkEngineRouter dispatch layer
-- IM Gateways — WeChat, WeCom, DingTalk, Feishu, QQ, Telegram, Discord, POPO remote access
+- GS enterprise authentication, client-policy refresh, notices, model/Skill synchronization, and application updates
+- Private knowledge-base file management, format conversion, and OpenClaw `memory_search` indexing
+- IM gateway code remains available, but the current branding disables startup and hides its settings by default
 - 40+ IPC channel handlers
 - Security: context isolation enabled, node integration disabled, sandbox enabled
 
@@ -233,7 +261,7 @@ LobsterAI uses Electron's strict process isolation. All cross-process communicat
 
 **Renderer Process** (`src/renderer/`):
 - React 18 + Redux Toolkit + Tailwind CSS
-- All UI and business logic
+- Enterprise login, notice banner, knowledge bases, Skill management, Cowork, and settings UI
 - Communicates with main process exclusively through IPC
 
 ### Directory Structure
@@ -257,8 +285,12 @@ src/
 │       │   └── claudeRuntimeAdapter.ts  # Legacy built-in adapter (deprecated)
 │       ├── coworkRunner.ts          # Legacy built-in executor (deprecated)
 │       ├── openclawEngineManager.ts # OpenClaw runtime lifecycle (install/start/status)
-│       ├── openclawConfigSync.ts    # Syncs cowork config → OpenClaw config files
-│       └── coworkMemoryExtractor.ts # Memory extraction
+│       ├── openclawConfigSync.ts    # Syncs Cowork, models, and KB index config
+│       ├── gsServerAuth.ts          # Enterprise login, policies, and notices
+│       ├── gsModelSync.ts           # Applies server-managed model config
+│       ├── gsSkillSync.ts           # Syncs server Skills and reports inventory
+│       ├── knowledgeBaseManager.ts  # Private knowledge-base file management
+│       └── knowledgeBaseImportConverters.ts # Office/PDF text conversion
 │
 ├── renderer/                        # React frontend
 │   ├── App.tsx                     # Root component
@@ -268,9 +300,12 @@ src/
 │   └── components/
 │       ├── cowork/                 # Cowork UI components
 │       ├── artifacts/              # Artifact renderers
-│       ├── skills/                 # Skill management UI
+│       ├── skills/                 # Policy-aware Skill management UI
+│       ├── kits/                   # Expert Kits and knowledge-base UI
 │       ├── im/                     # IM integration UI
-│       └── Settings.tsx            # Settings panel
+│       ├── GsLoginDialog.tsx       # Enterprise login
+│       ├── GsNoticeBanner.tsx      # Server-delivered notices
+│       └── Settings.tsx            # Settings and page governance
 │
 SKILLs/                              # Skill definitions
 ├── skills.config.json              # Skill enable/disable and ordering
@@ -279,7 +314,10 @@ SKILLs/                              # Skill definitions
 ├── xlsx/                           # Excel spreadsheets
 ├── pptx/                           # PowerPoint presentations
 ├── pdf/                            # PDF processing
-├── remotion/                       # Video generation
+├── rich-report/                    # Enterprise report generation
+├── market_quotes/                  # Market quotes
+├── stock_diagnosis/                # Stock diagnosis
+├── fund_diagnosis/                 # Fund diagnosis
 ├── playwright/                     # Web automation
 └── ...                             # More skills
 ```
@@ -318,45 +356,43 @@ All tool invocations involving file system access, terminal commands, or network
 
 ## Skills System
 
-LobsterAI ships with a rich set of built-in skills covering productivity, creative, investment research, and automation scenarios, configured via `SKILLs/skills.config.json`. Below are some typical examples:
+This branch focuses on office and securities-research Skills. `SKILLs/skills.config.json` controls bundled Skill state and ordering, while server-uploaded Skills synchronize by version after login or policy refresh.
 
 <details>
-<summary>View the full skill list</summary>
+<summary>View key Skills</summary>
 
 | Skill | Function | Typical Use Case |
 |-------|----------|-----------------|
+| rich-report | Enterprise report generation | Word/Excel input, charts, standardized styling |
 | web-search | Web search | Information retrieval, research |
 | docx | Word document generation | Reports, proposals |
 | xlsx | Excel spreadsheet generation | Data analysis, dashboards |
 | pptx | PowerPoint creation | Presentations, business reviews |
 | pdf | PDF processing | Document parsing, format conversion |
-| remotion | Video generation (Remotion) | Promo videos, data visualization animations |
-| seedance | AI video generation (Seedance) | Text-to-video, image-to-video |
-| seedream | AI image generation (Seedream) | Text-to-image, image editing and fusion |
 | playwright | Web automation | Browser tasks, automated testing |
-| canvas-design | Canvas drawing and design | Posters, chart design |
-| frontend-design | Frontend UI design | Prototyping, page design |
-| develop-web-game | Web game development | Quick game prototypes |
+| market_quotes | Market quotes | Index, stock, and fund quotes |
+| movement_attribution | Movement attribution | Explain market or security movements |
+| macro_news | Macro news | Policy and macro-market briefings |
+| theme_concept | Themes and concepts | Research market themes and concepts |
+| smart_stock_screener | Smart stock screening | Filter stocks from user criteria |
+| stock_diagnosis | Stock diagnosis | Fundamentals and trading-performance analysis |
+| smart_fund_picker | Smart fund selection | Select funds for a stated objective |
+| fund_diagnosis | Fund diagnosis | Fund performance and risk analysis |
+| gst_ai_chat | GSAI chat | Connect to Guosheng business Q&A |
 | stock-analyzer | Stock deep analysis | A-share research, valuation and financials |
 | stock-announcements | Stock announcement retrieval | Listed company filings, disclosure lookup |
 | stock-explorer | Stock information explorer | Basic stock info, market overview |
-| content-planner | Content planning | Topic strategy, content calendar creation |
-| article-writer | Article writing | Multi-style long-form content, social media posts |
-| daily-trending | Daily trending | Hot topic aggregation, trend tracking |
-| films-search | Film/TV resource search | Movie and series cloud-drive download links |
-| music-search | Music resource search | Song and album cloud-drive download links |
-| technology-news-search | Tech news search | Programming, AI, and IT industry updates (disabled by default) |
-| weather | Weather queries | Weather information |
 | local-tools | Local system tools | File management, system operations |
 | imap-smtp-email | Email send/receive | Email processing, auto-replies |
 | create-plan | Plan authoring | Project planning, task breakdown |
-| youdaonote | Youdao Note | Note management, to-dos, web clipping |
 | skill-vetter | Skill security audit | Safety check before installing third-party skills |
 | skill-creator | Custom skill creation | Extend new capabilities |
 
 </details>
 
-Custom skills can be created via `skill-creator` and hot-loaded at runtime.
+Film search, music search, and Youdao Note are removed from the default package. Image/video Skills can remain available for deployment-specific use, but the current branding hides their model picker.
+
+When enterprise policy sets `permissions.allowExternalSkillInstall=false`, marketplace, ZIP, folder, and remote installation entries are hidden, and the main process blocks unmanaged local Skills. The server can also force individual Skills on or off.
 
 ## Scheduled Tasks
 
@@ -377,26 +413,24 @@ LobsterAI supports scheduled tasks that let the Agent automatically execute recu
 | Content Monitoring | Regularly check specific websites for changes and send notifications |
 | Work Reminders | Generate to-do lists or meeting notes on a schedule |
 
-Scheduled tasks are powered by Cron expressions, supporting minute, hourly, daily, weekly, and monthly intervals. When a task fires, it automatically starts a Cowork session. Results can be viewed on the desktop or pushed to your phone via IM.
+Scheduled tasks are powered by Cron expressions, supporting minute, hourly, daily, weekly, and monthly intervals. When a task fires, it automatically starts a Cowork session. Results are shown on the desktop by default; mobile notifications can be added when IM gateways are explicitly enabled.
 
-## IM Integration — Mobile Remote Control
+## IM Integration
 
-LobsterAI can bridge the Agent to multiple IM platforms. Send a message from your phone via IM to remotely trigger the desktop Agent — command your personal assistant anytime, anywhere.
+The upstream WeChat, WeCom, DingTalk, Feishu, QQ, Telegram, Discord, NetEase IM, and POPO gateway code remains in the repository. The default branding for this branch sets `showImChannels=false`, so the main process does not start IM gateways and the Settings page hides IM configuration.
 
-| Platform | Protocol | Description |
-|----------|----------|-------------|
-| WeChat | OpenClaw gateway | WeChat account integration, supports DMs and group chats |
-| WeCom | OpenClaw gateway | WeCom app bot, supports DMs and group chats |
-| DingTalk | OpenClaw gateway | Enterprise bot, supports multiple instances |
-| Feishu | OpenClaw gateway | Feishu/Lark app bot, supports multiple instances |
-| QQ | OpenClaw gateway | QQ bot (official Bot API), supports multiple instances |
-| Telegram | OpenClaw gateway | Bot API, supports webhook and polling |
-| Discord | OpenClaw gateway | Discord bot, supports servers and DMs |
-| NetEase IM | node-nim V2 SDK | [NetEase IM P2P messaging](https://doc.yunxin.163.com/messaging2/getting-started) |
-| NetEase Bee | node-nim V2 SDK | [NetEase Bee personal digital assistant](https://wp.m.163.com/163/html/bee/lobsterai_guide/index.html) |
-| NetEase POPO | OpenClaw gateway | NetEase POPO enterprise IM, supports WebSocket and Webhook |
+If a deployment needs bot access, explicitly enable the flag in `src/shared/branding/branding.config.json` and provide platform credentials through `enterprise-config` or Settings. IM is outside the default delivery profile.
 
-Configure the corresponding platform Token/Secret in the Settings panel to enable. Once set up, you can send instructions directly to the Agent from your phone IM (e.g., "analyze this dataset", "make a weekly summary PPT"), and the Agent will execute on the desktop and return results.
+## Private Knowledge Bases
+
+- Create, rename, and delete multiple knowledge bases from the Expert Kits area
+- Pick individual files or recursively import folders with `.md`, `.txt`, `.csv`, `.docx`, `.xlsx`, `.xls`, and `.pdf` support
+- Rich formats are converted to Markdown text during import; source documents are not sent to upstream cloud services
+- Each source file or converted output is limited to 5 MB, and a folder batch expands at most 500 files
+- With Embedding enabled, the knowledge-base root is indexed by OpenClaw through `memorySearch.extraPaths`
+- Referencing a knowledge base in the prompt focuses `memory_search`; direct Markdown reads provide a fallback when retrieval is unavailable
+
+Knowledge-base files live under `knowledge-bases/<kbId>/` in the OpenClaw state directory. Each base contains `kb.json` metadata and converted `.md` documents.
 
 ## Persistent Memory
 
@@ -425,7 +459,7 @@ Memory writes go through file tools — there is no background extraction or inf
 
 ## Data Storage
 
-All data is stored in a local SQLite database (`lobsterai.sqlite` in the user data directory).
+Conversations, settings, enterprise-login cache, and policy snapshots are stored in the local SQLite database (`lobsterai.sqlite` in the user data directory). Knowledge bases and OpenClaw memory are file-based in the OpenClaw state directory.
 
 <details>
 <summary>Database tables</summary>
@@ -446,14 +480,20 @@ All data is stored in a local SQLite database (`lobsterai.sqlite` in the user da
 
 </details>
 
+The `kv` table persists the enterprise token, last user state, client policy, server URL override, and managed-model inventory. Knowledge bases are not stored in SQLite; they remain as independently indexed directories.
+
 ## Security Model
 
-LobsterAI enforces security at multiple layers:
+This branch adds enterprise policy controls to LobsterAI's security model:
 
 - **Process Isolation** — Context isolation enabled, node integration disabled
 - **Permission Gating** — Tool invocations require explicit user approval
 - **Workspace Boundaries** — File operations restricted to the designated working directory
 - **IPC Validation** — All cross-process calls are type-checked
+- **Upstream cloud kill switch** — `disableCloudServices=true` blocks Youdao API endpoints centrally
+- **Skill allowlisting** — When external installation is disabled, install entry points are hidden and unmanaged Skills are rejected
+- **Configuration governance** — Settings pages can be hidden, read-only, or editable, and task submission can be denied
+- **Content integrity** — Installed Skills report a SHA-256 fingerprint of `SKILL.md` so the server can detect changes
 
 ## Tech Stack
 
@@ -469,6 +509,8 @@ LobsterAI enforces security at multiple layers:
 | State | Redux Toolkit |
 | AI Engine | OpenClaw (primary) |
 | Storage | better-sqlite3 |
+| Enterprise Service | GS REST API for auth, policy, Skills, models, updates, and notices |
+| Knowledge Base | Local Markdown + OpenClaw memory_search |
 | Markdown | react-markdown + remark-gfm + rehype-katex |
 | Diagrams | Mermaid |
 | Security | DOMPurify |
@@ -480,7 +522,18 @@ LobsterAI enforces security at multiple layers:
 
 ### App Configuration
 
-App-level config is stored in the SQLite `kv` table, editable through the Settings panel.
+App-level configuration is stored in the SQLite `kv` table and edited through Settings. Branding and deployment defaults come from the JSON files listed under Enterprise Configuration.
+
+After login, the enterprise service can dynamically deliver:
+
+- `hidden`, `readonly`, or `editable` state for Settings pages
+- Permission to submit tasks, install external Skills, and configure custom models
+- Forced on/off state for individual Skills
+- OpenAI-compatible providers, model lists, and the default model
+- Client version, package URLs, availability time, and daily automatic-download windows
+- Bottom-banner notices with schedule and dismissibility controls
+
+Managed model updates are written to `app_config` and synchronized to OpenClaw. Providers removed by the server are cleaned up, while locally created providers that were never cloud-managed are preserved.
 
 ### Cowork Configuration
 
@@ -491,7 +544,7 @@ Cowork session config includes:
 
 ### Internationalization
 
-Currently English and Chinese are supported. Switch languages in the Settings panel.
+The UI still supports Chinese and English. A managed `AGENTS.md` policy enforces Simplified Chinese for Agent execution-process output in this enterprise profile.
 
 ## OpenClaw Version Management
 
@@ -582,13 +635,13 @@ Avoid importing Electron-only APIs (e.g. `electron-log`) in tests — inline any
 
 
 
-## Community
+## Maintenance and Support
 
-Join our WeChat group to get help, share feedback, and stay up to date:
+- Maintenance department: Information Technology Department
+- Contact: Baowanli
+- Email: `baowanli@gszq.com`
 
-<p align="center">
-  <img src="https://shared.ydstatic.com/market/souti/fihserChatWeb/online/2.0.4/dist/assets/wechat_group-B34qRm1G.png" alt="WeChat Community QR Code" width="200">
-</p>
+The About-page details are managed in `src/shared/about/about.config.json` and should be updated when ownership changes.
 
 ## Contributing
 
@@ -605,10 +658,6 @@ Please include in your PR description: a summary of changes, linked issue (if an
 [MIT License](LICENSE)
 
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=netease-youdao/LobsterAI&type=date&legend=top-left)](https://www.star-history.com/#netease-youdao/LobsterAI&type=date&legend=top-left)
-
 ---
 
-Built and maintained by [NetEase Youdao](https://www.youdao.com/).
+This project is customized from NetEase Youdao's open-source [LobsterAI](https://github.com/netease-youdao/LobsterAI). The enterprise edition is maintained by the Guosheng Securities Information Technology Department.

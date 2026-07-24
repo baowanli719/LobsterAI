@@ -64,6 +64,13 @@ interface SkillsManagerProps {
 const SkillsManager: React.FC<SkillsManagerProps> = ({ readOnly, onCreateByChat }) => {
   const dispatch = useDispatch();
   const skills = useSelector((state: RootState) => state.skill.skills);
+  /** 企业策略:禁止安装外部 skill(隐藏上传/远程导入/市场入口;主进程同样拦截) */
+  const externalInstallDisabled = useSelector(
+    (state: RootState) =>
+      state.gsAuth.enabled
+      && state.gsAuth.isLoggedIn
+      && state.gsAuth.config?.permissions?.allowExternalSkillInstall === false,
+  );
 
   const [skillSearchQuery, setSkillSearchQuery] = useState('');
   const [skillDownloadSource, setSkillDownloadSource] = useState('');
@@ -213,6 +220,13 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ readOnly, onCreateByChat 
       document.removeEventListener('keydown', handleEscape);
     };
   }, [selectedSkill, selectedMarketplaceSkill]);
+
+  // 企业策略禁止外部安装时,市场入口不可用,兜底切回已安装页
+  useEffect(() => {
+    if (externalInstallDisabled && activeTab === 'marketplace') {
+      setActiveTab('installed');
+    }
+  }, [externalInstallDisabled, activeTab]);
 
   const filteredSkills = useMemo(() => {
     const query = skillSearchQuery.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -639,32 +653,36 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ readOnly, onCreateByChat 
               <p className="px-3 py-2 text-[11px] text-orange-600 dark:text-orange-400 border-b border-border">
                 {i18nService.t('addSkillSecurityTip')}
               </p>
-              <button
-                type="button"
-                onClick={handleUploadSkillZip}
-                disabled={isDownloadingSkill}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-surface-raised transition-colors disabled:opacity-50"
-              >
-                <UploadIcon className="h-4 w-4 text-secondary" />
-                <span>{i18nService.t('uploadSkillZip')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleUploadSkillFolder}
-                disabled={isDownloadingSkill}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-surface-raised transition-colors disabled:opacity-50"
-              >
-                <FolderOpenIcon className="h-4 w-4 text-secondary" />
-                <span>{i18nService.t('uploadSkillFolder')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenRemoteImport}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-surface-raised transition-colors"
-              >
-                <LinkIcon className="h-4 w-4 text-secondary" />
-                <span>{i18nService.t('remoteImport')}</span>
-              </button>
+              {!externalInstallDisabled && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleUploadSkillZip}
+                    disabled={isDownloadingSkill}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-surface-raised transition-colors disabled:opacity-50"
+                  >
+                    <UploadIcon className="h-4 w-4 text-secondary" />
+                    <span>{i18nService.t('uploadSkillZip')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUploadSkillFolder}
+                    disabled={isDownloadingSkill}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-surface-raised transition-colors disabled:opacity-50"
+                  >
+                    <FolderOpenIcon className="h-4 w-4 text-secondary" />
+                    <span>{i18nService.t('uploadSkillFolder')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenRemoteImport}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-surface-raised transition-colors"
+                  >
+                    <LinkIcon className="h-4 w-4 text-secondary" />
+                    <span>{i18nService.t('remoteImport')}</span>
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 onClick={handleCreateByChat}
@@ -709,21 +727,23 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ readOnly, onCreateByChat 
               activeTab === 'installed' ? 'bg-primary' : 'bg-transparent'
             }`} />
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('marketplace')}
-            className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-              activeTab === 'marketplace'
-                ? 'text-foreground'
-                : 'text-secondary hover:hover:text-foreground'
-            }`}
-          >
-            {i18nService.t('skillMarketplace')}
-            <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-colors ${
-              activeTab === 'marketplace' ? 'bg-primary' : 'bg-transparent'
-            }`} />
-          </button>
-          {updatableSkills.length > 0 && (
+          {!externalInstallDisabled && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('marketplace')}
+              className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+                activeTab === 'marketplace'
+                  ? 'text-foreground'
+                  : 'text-secondary hover:hover:text-foreground'
+              }`}
+            >
+              {i18nService.t('skillMarketplace')}
+              <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-colors ${
+                activeTab === 'marketplace' ? 'bg-primary' : 'bg-transparent'
+              }`} />
+            </button>
+          )}
+          {!externalInstallDisabled && updatableSkills.length > 0 && (
             <div className="ml-auto pr-1 pb-1">
               <button
                 type="button"
@@ -793,6 +813,14 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ readOnly, onCreateByChat 
                   <span className="text-sm font-medium text-foreground truncate">
                     {skill.name}
                   </span>
+                  {skill.blocked && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 flex-shrink-0"
+                      title={i18nService.t('skillBlockedBySecurity')}
+                    >
+                      {i18nService.t('skillBlockedBadge')}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {!readOnly && !skill.isBuiltIn && (
@@ -807,11 +835,21 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ readOnly, onCreateByChat 
                   )}
                   <div
                     className={`w-9 h-5 rounded-full flex items-center transition-colors flex-shrink-0 ${
-                      readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      readOnly || skill.locked || skill.blocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                     } ${
                       skill.enabled ? 'bg-primary' : 'bg-gray-400 dark:bg-gray-600'
                     }`}
-                    onClick={(e) => { e.stopPropagation(); if (!readOnly) handleToggleSkill(skill.id); }}
+                    title={
+                      skill.blocked
+                        ? i18nService.t('skillBlockedBySecurity')
+                        : skill.locked
+                          ? i18nService.t('skillLockedByServer')
+                          : undefined
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!readOnly && !skill.locked && !skill.blocked) handleToggleSkill(skill.id);
+                    }}
                   >
                     <div
                       className={`w-3.5 h-3.5 rounded-full bg-white shadow-md transform transition-transform ${
@@ -1170,12 +1208,19 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ readOnly, onCreateByChat 
               )}
               <div
                 className={`w-9 h-5 rounded-full flex items-center transition-colors flex-shrink-0 ${
-                  readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  readOnly || selectedSkill.locked || selectedSkill.blocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 } ${
                   selectedSkill.enabled ? 'bg-primary' : 'bg-gray-400 dark:bg-gray-600'
                 }`}
+                title={
+                  selectedSkill.blocked
+                    ? i18nService.t('skillBlockedBySecurity')
+                    : selectedSkill.locked
+                      ? i18nService.t('skillLockedByServer')
+                      : undefined
+                }
                 onClick={() => {
-                  if (readOnly) return;
+                  if (readOnly || selectedSkill.locked || selectedSkill.blocked) return;
                   handleToggleSkill(selectedSkill.id);
                   setSelectedSkill({ ...selectedSkill, enabled: !selectedSkill.enabled });
                 }}

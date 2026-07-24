@@ -1,6 +1,7 @@
 import { ApiFormat, type ProviderConfig, ProviderName, ProviderRegistry } from '@shared/providers';
 
 import { normalizeBrowserWebAccessConfig } from '../../shared/browserWebAccess/constants';
+import { GS_CLOUD_PROVIDER_IDS_KEY } from '../../shared/gsCloudModels';
 import { normalizeNotificationSettings } from '../../shared/notifications/constants';
 import {
   AppConfig,
@@ -411,16 +412,26 @@ const omitLegacyVoiceInputConfig = (config: AppConfig): AppConfig => {
   return nextConfig;
 };
 
-const hydrateStoredConfig = (storedConfig: AppConfig): AppConfig => {
+const hydrateStoredConfig = (storedConfig: AppConfig, cloudProviderIds?: string[] | null): AppConfig => {
   const storedWithoutLegacyVoiceInput = omitLegacyVoiceInputConfig(storedConfig);
   const providerModelMigrationVersions = {
     ...(storedConfig.providerModelMigrationVersions ?? {}),
   };
-  const mergedProviders = storedConfig.providers
+  // GS 云端托管模型期间（清单非空）：服务端清单就是全集——
+  // 1. 不把出厂预制 provider（defaultConfig.providers，含 enabled 的白牌预制模型）合并回来，
+  //    否则"以前安装的模型"会残留在模型选择框里并被回写持久化；
+  // 2. 存量配置里不在服务端清单内的 provider 直接过滤掉（启动即校验删除）。
+  const cloudManaged = Array.isArray(cloudProviderIds) && cloudProviderIds.length > 0;
+  const storedProviders = storedConfig.providers && cloudManaged
+    ? Object.fromEntries(
+        Object.entries(storedConfig.providers).filter(([key]) => cloudProviderIds.includes(key)),
+      ) as AppConfig['providers']
+    : storedConfig.providers;
+  const mergedProviders = storedProviders
     ? Object.fromEntries(
         Object.entries({
-          ...(defaultConfig.providers ?? {}),
-          ...storedConfig.providers,
+          ...(cloudManaged ? {} : defaultConfig.providers ?? {}),
+          ...storedProviders,
         }).map(([providerKey, providerConfig]) => [
           providerKey,
           (() => {
@@ -436,7 +447,8 @@ const hydrateStoredConfig = (storedConfig: AppConfig): AppConfig => {
               );
             }
             // Inject added models (for existing users who already have saved config)
-            const addedConfig = ADDED_PROVIDER_MODELS[providerKey];
+            // 云端托管时跳过：模型清单以服务端为准，不注入产品目录更新
+            const addedConfig = cloudManaged ? undefined : ADDED_PROVIDER_MODELS[providerKey];
             const existingIds = new Set(
               (mergedProvider.models as Array<{ id: string }> | undefined)?.map(model => model.id) ?? []
             );
@@ -514,16 +526,36 @@ const hydrateStoredConfig = (storedConfig: AppConfig): AppConfig => {
 
 class ConfigService {
   private config: AppConfig = defaultConfig;
+  /** GS 云端下发的 provider id 清单；非空 = 云端托管模型，hydrate 时排除预制/残留 provider */
+  private cloudProviderIds: string[] | null = null;
+
+  /** 读取主进程 gsModelSync 持久化的云端 provider 清单；读不到视为未托管 */
+  private async refreshCloudProviderIds(): Promise<void> {
+    try {
+      const ids = await localStore.getItem<string[]>(GS_CLOUD_PROVIDER_IDS_KEY);
+      this.cloudProviderIds = Array.isArray(ids) ? ids : null;
+    } catch {
+      this.cloudProviderIds = null;
+    }
+  }
 
   async init() {
     try {
+      await this.refreshCloudProviderIds();
       const storedConfig = await localStore.getItem<AppConfig>(CONFIG_KEYS.APP_CONFIG);
       if (!storedConfig) {
         console.warn('[ConfigService] init: no stored config found, using defaults');
+        // Persist the defaults on first run so the main-process gateway sync sees
+        // the pre-configured default provider/model (defaultModel.config.json).
+        try {
+          await localStore.setItem(CONFIG_KEYS.APP_CONFIG, this.config);
+        } catch (persistError) {
+          console.warn('[ConfigService] init: failed to persist default config:', persistError);
+        }
       }
       if (storedConfig) {
         const previousMigrationVersions = storedConfig.providerModelMigrationVersions;
-        this.config = hydrateStoredConfig(storedConfig);
+        this.config = hydrateStoredConfig(storedConfig, this.cloudProviderIds);
         if (JSON.stringify(this.config) !== JSON.stringify(storedConfig)) {
           try {
             await localStore.setItem(CONFIG_KEYS.APP_CONFIG, this.config);
@@ -554,8 +586,9 @@ class ConfigService {
     // Read-modify-write: use the latest stored value as the base to avoid
     // overwriting fields (e.g. providers) with stale in-memory defaults when
     // only a subset of config is being updated.
+    await this.refreshCloudProviderIds();
     const stored = await localStore.getItem<AppConfig>(CONFIG_KEYS.APP_CONFIG);
-    const base = stored ? hydrateStoredConfig(stored) : this.config;
+    const base = stored ? hydrateStoredConfig(stored, this.cloudProviderIds) : this.config;
 
     this.config = omitLegacyVoiceInputConfig({
       ...base,

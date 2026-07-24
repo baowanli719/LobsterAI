@@ -1,0 +1,119 @@
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+export type GsSettingsPageMode = 'hidden' | 'readonly' | 'editable';
+
+export type GsSkillControl = 'on' | 'off';
+
+export interface GsClientConfig {
+  version: number;
+  features: { customModel: boolean };
+  settingsPages: Record<string, GsSettingsPageMode>;
+  permissions: {
+    allowSubmit: boolean;
+    /** 是否允许安装外部 skill；老服务端可能不下发 */
+    allowExternalSkillInstall?: boolean;
+  };
+  /** 云端 skill 管控表（按 skill id）；老服务端可能不下发 */
+  skills?: Record<string, GsSkillControl>;
+  /** 云端模型配置（主进程消费，写入 app_config）；null/缺省 = 不下发 */
+  models?: {
+    providers: Record<string, {
+      baseUrl: string;
+      api: string;
+      apiKey?: string;
+      models: Array<{ id: string; name?: string; input?: string[] }>;
+    }>;
+    defaultPrimary?: string;
+  } | null;
+  /** 通知公告（底部滚动横幅）；null/缺省 = 不下发。老服务端可能不下发 */
+  notice?: GsNoticeConfig | null;
+}
+
+/** 服务端下发的通知公告 */
+export interface GsNoticeConfig {
+  text: string;
+  /** 展示开始时间（ISO 8601）；缺省 = 立即展示 */
+  startAt?: string;
+  /** 展示结束时间（ISO 8601）；缺省 = 一直展示 */
+  endAt?: string;
+  /** 是否允许用户手动关闭；默认 true */
+  dismissible?: boolean;
+}
+
+export interface GsUser {
+  id: number;
+  username: string;
+  displayName: string;
+  role: string;
+}
+
+export interface GsAuthState {
+  /** 是否启用 GS 服务端对接（未配置服务端地址时为 false，所有拦截逻辑失效） */
+  enabled: boolean;
+  /** 当前生效的服务端地址 */
+  baseUrl: string;
+  /** 地址被 enterprise-config 锁定，登录框不允许手改 */
+  baseUrlLocked: boolean;
+  isLoggedIn: boolean;
+  user: GsUser | null;
+  config: GsClientConfig | null;
+  /** 服务端是否可达 */
+  online: boolean;
+  lastSyncAt: number | null;
+}
+
+interface GsAuthSliceState extends GsAuthState {
+  loginDialogOpen: boolean;
+}
+
+const initialState: GsAuthSliceState = {
+  enabled: false,
+  baseUrl: '',
+  baseUrlLocked: false,
+  isLoggedIn: false,
+  user: null,
+  config: null,
+  online: true,
+  lastSyncAt: null,
+  loginDialogOpen: false,
+};
+
+const gsAuthSlice = createSlice({
+  name: 'gsAuth',
+  initialState,
+  reducers: {
+    setGsAuthState(state, action: PayloadAction<GsAuthState>) {
+      state.enabled = action.payload.enabled;
+      state.baseUrl = action.payload.baseUrl;
+      state.baseUrlLocked = action.payload.baseUrlLocked;
+      state.isLoggedIn = action.payload.isLoggedIn;
+      state.user = action.payload.user;
+      state.config = action.payload.config;
+      state.online = action.payload.online;
+      state.lastSyncAt = action.payload.lastSyncAt;
+    },
+    openGsLoginDialog(state) {
+      state.loginDialogOpen = true;
+    },
+    closeGsLoginDialog(state) {
+      state.loginDialogOpen = false;
+    },
+  },
+});
+
+export const { setGsAuthState, openGsLoginDialog, closeGsLoginDialog } = gsAuthSlice.actions;
+export default gsAuthSlice.reducer;
+
+/** 未登录拦截：启用了 GS 对接且未登录 */
+export const selectGsLoginRequired = (state: { gsAuth: GsAuthSliceState }): boolean =>
+  state.gsAuth.enabled && !state.gsAuth.isLoggedIn;
+
+/** 离线拦截：启用了 GS 对接、已登录但服务端不可达 */
+export const selectGsOffline = (state: { gsAuth: GsAuthSliceState }): boolean =>
+  state.gsAuth.enabled && !state.gsAuth.online;
+
+/** 服务端明确禁止提交 */
+export const selectGsSubmitDenied = (state: { gsAuth: GsAuthSliceState }): boolean =>
+  state.gsAuth.enabled
+  && state.gsAuth.isLoggedIn
+  && state.gsAuth.config?.permissions.allowSubmit === false;

@@ -10,13 +10,17 @@ import {
   AppUpdateStatus,
   isManualDownloadUrl,
 } from '../shared/appUpdate/constants';
+import { branding } from '../shared/branding';
 import { OpenClawProviderId, ProviderName, ProviderRegistry } from '../shared/providers';
 import { CoworkView } from './components/cowork';
 import { CoworkShortcutDirection, CoworkUiEvent } from './components/cowork/constants';
 import CoworkPermissionModal from './components/cowork/CoworkPermissionModal';
 import CoworkQuestionWizard from './components/cowork/CoworkQuestionWizard';
 import EngineStartupOverlay from './components/cowork/EngineStartupOverlay';
+import GsLoginDialog from './components/GsLoginDialog';
+import GsNoticeBanner from './components/GsNoticeBanner';
 import KitsView from './components/kits/KitsView';
+import KnowledgeBaseView from './components/kits/KnowledgeBaseView';
 import { McpView } from './components/mcp';
 import PrivacyDialog from './components/PrivacyDialog';
 import { ScheduledTasksView } from './components/scheduledTasks';
@@ -26,14 +30,13 @@ import { SkillsView } from './components/skills';
 import Toast from './components/Toast';
 import AppUpdateBadge from './components/update/AppUpdateBadge';
 import AppUpdateModal from './components/update/AppUpdateModal';
-import WelcomeDialog from './components/WelcomeDialog';
 import WindowTitleBar from './components/window/WindowTitleBar';
 import { defaultConfig, getProviderDisplayName, ShortcutAction } from './config';
-import type { ApiConfig } from './services/api';
 import { apiService } from './services/api';
 import { authService } from './services/auth';
 import { configService } from './services/config';
 import { coworkService } from './services/cowork';
+import { gsAuthService } from './services/gsAuth';
 import { i18nService } from './services/i18n';
 import { scheduledTaskService } from './services/scheduledTask';
 import { matchesShortcut } from './services/shortcuts';
@@ -96,7 +99,7 @@ const INIT_STEP_TIMEOUT_MS_DEFAULT = 16_000;
 const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsOptions, setSettingsOptions] = useState<SettingsOpenOptions & { requestId: number }>({ requestId: 0 });
-  const [mainView, setMainView] = useState<'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'mcp'>('cowork');
+  const [mainView, setMainView] = useState<'cowork' | 'skills' | 'scheduledTasks' | 'kits' | 'knowledgeBase' | 'mcp'>('cowork');
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -113,7 +116,6 @@ const App: React.FC = () => {
   });
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState<boolean | null>(null);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [enterpriseConfig, setEnterpriseConfig] = useState<{
     ui?: Record<string, 'hide' | 'disable' | 'readonly'>;
     disableUpdate?: boolean;
@@ -127,7 +129,27 @@ const App: React.FC = () => {
   const currentSessionId = useSelector(selectCurrentSessionId);
   const pendingPermission = useSelector(selectFirstPendingPermission);
   const authUser = useSelector((state: RootState) => state.auth.user);
+  const gsEnabled = useSelector((state: RootState) => state.gsAuth.enabled);
+  const gsConfig = useSelector((state: RootState) => state.gsAuth.config);
   const isWindows = window.electron.platform === 'win32';
+
+  // GS 服务端下发的 settingsPages 合并进企业 ui 规则（hidden→hide、readonly→readonly），
+  // 与本地 enterprise-config 走同一套设置页管控通道；服务端值优先。
+  const effectiveEnterpriseConfig = useMemo(() => {
+    if (!gsEnabled || !gsConfig) return enterpriseConfig;
+    const remoteUi: Record<string, 'hide' | 'disable' | 'readonly'> = {};
+    for (const [page, mode] of Object.entries(gsConfig.settingsPages ?? {})) {
+      if (mode === 'hidden') remoteUi[`settings.${page}`] = 'hide';
+      else if (mode === 'readonly') remoteUi[`settings.${page}`] = 'readonly';
+    }
+    if (gsConfig.features?.customModel === false) {
+      remoteUi['settings.model'] = 'hide';
+    }
+    return {
+      ...(enterpriseConfig ?? {}),
+      ui: { ...(enterpriseConfig?.ui ?? {}), ...remoteUi },
+    };
+  }, [gsEnabled, gsConfig, enterpriseConfig]);
 
   const waitWithTimeout = useCallback(
     async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
@@ -149,6 +171,47 @@ const App: React.FC = () => {
       });
     },
     []
+  );
+
+  // 从 app_config 构建模型列表并同步到 redux / apiService。
+  // 三个调用点：启动初始化、关闭设置页、云端模型配置下发（gsAuth:modelsApplied）。
+  const applyModelsFromConfig = useCallback(
+    (config: ReturnType<typeof configService.getConfig>, options?: { updateDefault?: boolean }) => {
+      apiService.setConfig({
+        apiKey: config.api.key,
+        baseUrl: config.api.baseUrl,
+      });
+
+      const providerModels: { id: string; name: string; provider?: string; providerKey?: string; openClawProviderId?: string; supportsImage?: boolean }[] = [];
+      if (config.providers) {
+        Object.entries(config.providers).forEach(([providerName, providerConfig]) => {
+          if (providerConfig.enabled && providerConfig.models) {
+            const openClawProviderId = getOpenClawProviderIdForConfig(providerName, providerConfig);
+            providerConfig.models.forEach((model: { id: string; name: string; supportsImage?: boolean }) => {
+              providerModels.push({
+                id: model.id,
+                name: model.name,
+                provider: getProviderDisplayName(providerName, providerConfig),
+                providerKey: providerName,
+                openClawProviderId,
+                supportsImage: model.supportsImage ?? false,
+              });
+            });
+          }
+        });
+      }
+      dispatch(setAvailableModels(providerModels));
+
+      if (options?.updateDefault && providerModels.length > 0) {
+        const allModels = store.getState().model.availableModels;
+        const preferredModel = allModels.find(
+          model => model.id === config.model.defaultModel
+            && (!config.model.defaultModelProvider || model.providerKey === config.model.defaultModelProvider)
+        ) ?? allModels[0];
+        dispatch(setDefaultSelectedModel(preferredModel));
+      }
+    },
+    [dispatch],
   );
 
   // 初始化应用
@@ -194,40 +257,10 @@ const App: React.FC = () => {
         await authService.init();
         mark('authService.init done');
 
-        const config = await configService.getConfig();
-        const apiConfig: ApiConfig = {
-          apiKey: config.api.key,
-          baseUrl: config.api.baseUrl,
-        };
-        apiService.setConfig(apiConfig);
+        await gsAuthService.init();
+        mark('gsAuthService.init done');
 
-        const providerModels: { id: string; name: string; provider?: string; providerKey?: string; openClawProviderId?: string; supportsImage?: boolean }[] = [];
-        if (config.providers) {
-          Object.entries(config.providers).forEach(([providerName, providerConfig]) => {
-            if (providerConfig.enabled && providerConfig.models) {
-              const openClawProviderId = getOpenClawProviderIdForConfig(providerName, providerConfig);
-              providerConfig.models.forEach((model: { id: string; name: string; supportsImage?: boolean }) => {
-                providerModels.push({
-                  id: model.id,
-                  name: model.name,
-                  provider: getProviderDisplayName(providerName, providerConfig),
-                  providerKey: providerName,
-                  openClawProviderId,
-                  supportsImage: model.supportsImage ?? false,
-                });
-              });
-            }
-          });
-        }
-        dispatch(setAvailableModels(providerModels));
-        if (providerModels.length > 0) {
-          const allModels = store.getState().model.availableModels;
-          const preferredModel = allModels.find(
-            model => model.id === config.model.defaultModel
-              && (!config.model.defaultModelProvider || model.providerKey === config.model.defaultModelProvider)
-          ) ?? allModels[0];
-          dispatch(setDefaultSelectedModel(preferredModel));
-        }
+        applyModelsFromConfig(configService.getConfig(), { updateDefault: true });
         mark('model resolution done');
 
         const agreed = await window.electron.store.get('privacy_agreed');
@@ -253,7 +286,21 @@ const App: React.FC = () => {
     };
 
     void initializeApp();
-  }, [dispatch, waitWithTimeout]);
+  }, [dispatch, waitWithTimeout, applyModelsFromConfig]);
+
+  // 云端模型配置写入 app_config 后（主进程 gsModelSync 广播），重载配置并刷新模型列表
+  useEffect(() => {
+    const removeListener = window.electron.gsAuth.onModelsApplied?.(() => {
+      void (async () => {
+        console.log('[App] cloud model config applied, reloading model list');
+        await configService.init(); // 重新从主进程 store 读取 app_config
+        applyModelsFromConfig(configService.getConfig(), { updateDefault: true });
+        // 让 CoworkPromptInput 等监听方与设置页保持同步
+        window.dispatchEvent(new CustomEvent('config-updated'));
+      })();
+    });
+    return removeListener;
+  }, [applyModelsFromConfig]);
 
   useEffect(() => {
     const unsubscribe = i18nService.subscribe(() => {
@@ -344,6 +391,10 @@ const App: React.FC = () => {
 
   const handleShowKits = useCallback(() => {
     setMainView('kits');
+  }, []);
+
+  const handleShowKnowledgeBase = useCallback(() => {
+    setMainView('knowledgeBase');
   }, []);
 
   const handleKitTryAsking = useCallback((text: string, kitId: string) => {
@@ -529,23 +580,14 @@ const App: React.FC = () => {
   const handlePrivacyAccept = useCallback(async () => {
     await window.electron.store.set('privacy_agreed', true);
     setPrivacyAgreed(true);
-    setShowWelcome(true);
+    // 企业版模型由服务端下发，首次启动不再弹「自定义模型」设置：
+    // 此时用户还没登录、云端配置尚未下发，弹本地模型配置会误导用户
   }, []);
 
   const handlePrivacyReject = useCallback(() => {
     // 立刻隐藏窗口，让用户感觉立即关闭
     window.electron.window.close();
   }, []);
-
-  const handleWelcomeClose = useCallback(() => setShowWelcome(false), []);
-  const handleWelcomeLogin = useCallback(async () => {
-    setShowWelcome(false);
-    await authService.login();
-  }, []);
-  const handleWelcomeCustomModel = useCallback(() => {
-    setShowWelcome(false);
-    handleShowSettings({ initialTab: 'model' });
-  }, [handleShowSettings]);
 
   const handlePermissionResponse = useCallback(async (result: CoworkPermissionResult) => {
     if (!pendingPermission) return;
@@ -554,31 +596,7 @@ const App: React.FC = () => {
 
   const handleCloseSettings = () => {
     setShowSettings(false);
-    const config = configService.getConfig();
-    apiService.setConfig({
-      apiKey: config.api.key,
-      baseUrl: config.api.baseUrl,
-    });
-
-    if (config.providers) {
-      const allModels: { id: string; name: string; provider?: string; providerKey?: string; openClawProviderId?: string; supportsImage?: boolean }[] = [];
-      Object.entries(config.providers).forEach(([providerName, providerConfig]) => {
-        if (providerConfig.enabled && providerConfig.models) {
-          const openClawProviderId = getOpenClawProviderIdForConfig(providerName, providerConfig);
-          providerConfig.models.forEach((model: { id: string; name: string; supportsImage?: boolean }) => {
-            allModels.push({
-              id: model.id,
-              name: model.name,
-              provider: getProviderDisplayName(providerName, providerConfig),
-              providerKey: providerName,
-              openClawProviderId,
-              supportsImage: model.supportsImage ?? false,
-            });
-          });
-        }
-      });
-      dispatch(setAvailableModels(allModels));
-    }
+    applyModelsFromConfig(configService.getConfig());
   };
 
   const isShortcutInputActive = () => {
@@ -643,7 +661,7 @@ const App: React.FC = () => {
       }
 
       const settingsTabShortcut = SETTINGS_TAB_SHORTCUT_ACTIONS.find(({ action }) => matchesAction(action));
-      if (settingsTabShortcut) {
+      if (settingsTabShortcut && !(settingsTabShortcut.initialTab === 'im' && !branding.showImChannels)) {
         event.preventDefault();
         handleShowSettings({ initialTab: settingsTabShortcut.initialTab });
         return;
@@ -973,7 +991,7 @@ const App: React.FC = () => {
               initialTabRequestId={settingsOptions.requestId}
               notice={settingsOptions.notice}
               onUpdateFound={handleUpdateFound}
-              enterpriseConfig={enterpriseConfig}
+              enterpriseConfig={effectiveEnterpriseConfig}
             />
           )}
         </div>
@@ -986,6 +1004,7 @@ const App: React.FC = () => {
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
+      <GsLoginDialog />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar
           onShowLogin={handleShowLogin}
@@ -995,12 +1014,13 @@ const App: React.FC = () => {
           onShowCowork={handleShowCowork}
           onShowScheduledTasks={handleShowScheduledTasks}
           onShowKits={handleShowKits}
+          onShowKnowledgeBase={handleShowKnowledgeBase}
           onShowMcp={handleShowMcp}
           onNewChat={handleNewChat}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={handleToggleSidebar}
           updateBadge={!isSidebarCollapsed ? updateBadge : null}
-          hideLogin={enterpriseConfig?.ui?.login === 'hide'}
+          hideLogin={branding.hideLogin || enterpriseConfig?.ui?.login === 'hide'}
         />
         <div className={`flex-1 min-w-0 transition-[padding] duration-200 ease-out ${isSidebarCollapsed ? 'pl-1.5' : ''}`}>
           <div className="relative h-full min-h-0 rounded-xl border border-border bg-background overflow-hidden">
@@ -1029,6 +1049,13 @@ const App: React.FC = () => {
                 updateBadge={isSidebarCollapsed ? updateBadge : null}
                 onTryAsking={handleKitTryAsking}
               />
+            ) : mainView === 'knowledgeBase' ? (
+              <KnowledgeBaseView
+                isSidebarCollapsed={isSidebarCollapsed}
+                onToggleSidebar={handleToggleSidebar}
+                onNewChat={handleNewChat}
+                updateBadge={isSidebarCollapsed ? updateBadge : null}
+              />
             ) : mainView === 'mcp' ? (
               <McpView
                 isSidebarCollapsed={isSidebarCollapsed}
@@ -1038,7 +1065,7 @@ const App: React.FC = () => {
               />
             ) : (
               <CoworkView
-                onRequestAppSettings={privacyAgreed === true && !showWelcome ? handleShowSettings : undefined}
+                onRequestAppSettings={privacyAgreed === true ? handleShowSettings : undefined}
                 onShowSkills={handleShowSkills}
                 onShowKits={handleShowKits}
                 isSidebarCollapsed={isSidebarCollapsed}
@@ -1050,6 +1077,8 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* 服务端下发的通知公告，底部滚动横幅 */}
+      <GsNoticeBanner />
 
       {/* 设置窗口显示在所有主内容之上，但不影响主界面的交互 */}
       {showSettings && (
@@ -1059,7 +1088,7 @@ const App: React.FC = () => {
           initialTabRequestId={settingsOptions.requestId}
           notice={settingsOptions.notice}
           onUpdateFound={handleUpdateFound}
-          enterpriseConfig={enterpriseConfig}
+          enterpriseConfig={effectiveEnterpriseConfig}
         />
       )}
       {showUpdateModal && updateInfo && (
@@ -1080,13 +1109,6 @@ const App: React.FC = () => {
         <PrivacyDialog
           onAccept={handlePrivacyAccept}
           onReject={handlePrivacyReject}
-        />
-      )}
-      {showWelcome && (
-        <WelcomeDialog
-          onLogin={handleWelcomeLogin}
-          onCustomModel={handleWelcomeCustomModel}
-          onClose={handleWelcomeClose}
         />
       )}
     </div>

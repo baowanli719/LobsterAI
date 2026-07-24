@@ -5,8 +5,10 @@ import artifactReducer from './slices/artifactSlice';
 import asrQuotaReducer from './slices/asrQuotaSlice';
 import authReducer from './slices/authSlice';
 import coworkReducer from './slices/coworkSlice';
+import gsAuthReducer from './slices/gsAuthSlice';
 import imReducer from './slices/imSlice';
 import kitReducer from './slices/kitSlice';
+import knowledgeBaseReducer from './slices/knowledgeBaseSlice';
 import mcpReducer from './slices/mcpSlice';
 import modelReducer from './slices/modelSlice';
 import quickActionReducer from './slices/quickActionSlice';
@@ -25,8 +27,10 @@ export const store = configureStore({
     agent: agentReducer,
     asrQuota: asrQuotaReducer,
     auth: authReducer,
+    gsAuth: gsAuthReducer,
     artifact: artifactReducer,
     kit: kitReducer,
+    knowledgeBase: knowledgeBaseReducer,
   },
 });
 

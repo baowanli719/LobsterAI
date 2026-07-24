@@ -1,4 +1,5 @@
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon, LockClosedIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { branding } from '@shared/branding';
 import { ProviderName } from '@shared/providers';
 import React from 'react';
 import { createPortal } from 'react-dom';
@@ -8,6 +9,7 @@ import { getProviderIcon, ProviderIconId } from '../providers/uiRegistry';
 import { authService } from '../services/auth';
 import { i18nService } from '../services/i18n';
 import { RootState } from '../store';
+import { openGsLoginDialog, selectGsLoginRequired } from '../store/slices/gsAuthSlice';
 import type { Model } from '../store/slices/modelSlice';
 import { getModelIdentityKey, isSameModelIdentity, setSelectedModel } from '../store/slices/modelSlice';
 import Modal from './common/Modal';
@@ -90,6 +92,8 @@ export const ModelAccessPromptModal: React.FC<ModelAccessPromptModalProps> = ({
   const handlePrimary = async () => {
     if (promptKind === ModelAccessPromptKind.Login) {
       onClose();
+      // 公司版：登录已禁用，静默忽略
+      if (branding.hideLogin) return;
       await authService.login();
       return;
     }
@@ -192,6 +196,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const globalSelectedModel = useSelector((state: RootState) => state.model.defaultSelectedModel);
   const currentAgentId = useSelector((state: RootState) => state.agent.currentAgentId);
   const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
+  const gsLoginRequired = useSelector(selectGsLoginRequired);
   const selectedModel = controlled ? value ?? null : globalSelectedModel;
   const selectedModelKey = selectedModel ? getModelIdentityKey(selectedModel) : '';
   const availableModels = useSelector((state: RootState) => state.model.availableModels);
@@ -316,6 +321,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   const toggleOpen = () => {
     if (disabled) return;
+    // GS 企业版：未登录时不允许选择模型，弹登录框
+    if (gsLoginRequired) {
+      dispatch(openGsLoginDialog());
+      return;
+    }
     if (!isOpen) {
       const nextDirection = resolveDirection();
       setResolvedDirection(nextDirection);

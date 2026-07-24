@@ -1,6 +1,7 @@
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { ArrowUpIcon, FolderIcon } from '@heroicons/react/24/solid';
 import { AuthSubscriptionStatus } from '@shared/auth/constants';
+import { branding } from '@shared/branding';
 import { ProviderName } from '@shared/providers';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -39,6 +40,12 @@ import {
   setDraftSkillIds,
   updateCurrentSessionModelOverride,
 } from '../../store/slices/coworkSlice';
+import {
+  openGsLoginDialog,
+  selectGsLoginRequired,
+  selectGsOffline,
+  selectGsSubmitDenied,
+} from '../../store/slices/gsAuthSlice';
 import { setActiveKitIds, toggleActiveKit } from '../../store/slices/kitSlice';
 import type { Model } from '../../store/slices/modelSlice';
 import { setActiveSkillIds, setSkills, toggleActiveSkill } from '../../store/slices/skillSlice';
@@ -57,7 +64,7 @@ import PromptAddIcon from '../icons/PromptAddIcon';
 import SkillIcon from '../icons/SkillIcon';
 import TaskPauseIcon from '../icons/TaskPauseIcon';
 import XMarkIcon from '../icons/XMarkIcon';
-import { ActiveKitBadge, KitsButton } from '../kits';
+import { ActiveKitBadge, ActiveKnowledgeBaseBadge, KitsButton } from '../kits';
 import ModelSelector, {
   ModelAccessPromptKind,
   ModelAccessPromptModal,
@@ -81,6 +88,7 @@ import {
 } from './mediaMentionUtils';
 import MediaModelPicker from './MediaModelPicker';
 import { buildSelectedKitContextPrompt } from './selectedKitContextPrompt';
+import { buildSelectedKnowledgeBaseContextPrompt } from './selectedKnowledgeBaseContextPrompt';
 import { buildSelectedSkillRoutingPrompt } from './selectedSkillRoutingPrompt';
 import SelectedTextSnippetBadge from './SelectedTextSnippetBadge';
 import { usePersistAgentModelSelection } from './usePersistAgentModelSelection';
@@ -306,6 +314,9 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     const availableModels = useSelector((state: RootState) => state.model.availableModels);
     const currentSession = useSelector((state: RootState) => state.cowork.currentSession);
     const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
+    const gsLoginRequired = useSelector(selectGsLoginRequired);
+    const gsOffline = useSelector(selectGsOffline);
+    const gsSubmitDenied = useSelector(selectGsSubmitDenied);
     const authQuota = useSelector((state: RootState) => state.auth.quota);
     const asrQuota = useSelector((state: RootState) => state.asrQuota);
     const [value, setValue] = useState(draftPrompt);
@@ -424,6 +435,8 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
   const installedKits = useSelector((state: RootState) => state.kit.installedKits);
   const marketplaceKits = useSelector((state: RootState) => state.kit.marketplaceKits);
   const hasActiveKits = activeKitIds.length > 0;
+  const activeKbIds = useSelector((state: RootState) => state.knowledgeBase.activeKbIds);
+  const knowledgeBases = useSelector((state: RootState) => state.knowledgeBase.knowledgeBases);
   const draftKitIdsForKey = useSelector((state: RootState) => state.cowork.draftKitIds[draftKey]);
   const draftSkillIdsForKey = useSelector((state: RootState) => state.cowork.draftSkillIds[draftKey]);
   const currentAgent = agents.find((agent) => agent.id === currentAgentId);
@@ -450,7 +463,8 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
   const isLarge = size === 'large' || isCompact;
   const useHomeContextLayout = isLarge && showAgentSelector;
   const useCompactSendButton = isLarge && (useHomeContextLayout || showReadOnlyContext || isCompact);
-  const hasActiveContext = hasActiveSkills || hasActiveKits;
+  const hasActiveKnowledgeBases = activeKbIds.some(id => knowledgeBases.some(kb => kb.id === id));
+  const hasActiveContext = hasActiveSkills || hasActiveKits || hasActiveKnowledgeBases;
   const hasAttachments = attachments.length > 0;
   const minHeight = isCompact
     ? hasAttachments ? 30 : hasActiveContext ? 30 : 28
@@ -808,6 +822,20 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     if ((!trimmedValue && attachments.length === 0) || disabled || isPatchingModel) return;
     setShowFolderRequiredWarning(false);
 
+    // GS 企业版拦截：未登录 → 弹登录框；离线/管理员暂停提交 → 提示
+    if (gsLoginRequired) {
+      dispatch(openGsLoginDialog());
+      return;
+    }
+    if (gsOffline) {
+      showToast(i18nService.t('gsOfflineDesc'));
+      return;
+    }
+    if (gsSubmitDenied) {
+      showToast(i18nService.t('gsSubmitDeniedDesc'));
+      return;
+    }
+
     const accessPrompt = resolveSubmitModelAccessPrompt();
     if (accessPrompt) {
       setModelAccessPrompt(accessPrompt);
@@ -822,8 +850,10 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
       .map(id => skills.find(s => s.id === id))
       .filter((s): s is Skill => s !== undefined);
     const kitPrompt = buildSelectedKitContextPrompt(activeKitIds, marketplaceKits, installedKits);
+    const kbPrompt = buildSelectedKnowledgeBaseContextPrompt(activeKbIds, knowledgeBases);
     const skillPrompt = [
       kitPrompt,
+      kbPrompt,
       buildSelectedSkillRoutingPrompt(activeSkills),
     ].filter(Boolean).join('\n\n') || undefined;
 
@@ -952,12 +982,18 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
 
     const result = await onSubmit(finalPrompt, skillPrompt, imageAtts.length > 0 ? imageAtts : undefined, mediaReferences.length > 0 ? mediaReferences : undefined, selectedTextSnippets.length > 0 ? selectedTextSnippets : undefined);
     if (result === false) return;
+    // GS 企业版：上报对话日志（元数据 + 提问摘要，不含回复）；主进程判断是否启用，fire-and-forget
+    void window.electron.gsAuth?.logChat({
+      sessionId: draftKey,
+      model: effectiveSelectedModel?.id,
+      promptSummary: trimmedValue.slice(0, 200),
+    });
     setValue('');
     dispatch(setDraftPrompt({ sessionId: draftKey, draft: '' }));
     dispatch(clearDraftAttachments(draftKey));
     dispatch(clearDraftSelectedTextSnippets(draftKey));
     setImageVisionHint(false);
-  }, [value, isVoiceRecording, stopVoiceRecordingAndRecognize, isStreaming, disabled, isPatchingModel, onSubmit, activeSkillIds, skills, activeKitIds, marketplaceKits, installedKits, attachments, showFolderSelector, workingDirectory, dispatch, draftKey, effectiveSelectedModel?.id, modelSupportsImage, mediaLabels, selectedTextSnippets, resolveSubmitModelAccessPrompt]);
+  }, [value, isVoiceRecording, stopVoiceRecordingAndRecognize, isStreaming, disabled, isPatchingModel, onSubmit, activeSkillIds, skills, activeKitIds, marketplaceKits, installedKits, activeKbIds, knowledgeBases, attachments, showFolderSelector, workingDirectory, dispatch, draftKey, effectiveSelectedModel?.id, modelSupportsImage, mediaLabels, selectedTextSnippets, resolveSubmitModelAccessPrompt, gsLoginRequired, gsOffline, gsSubmitDenied]);
 
   const handleSelectSkill = useCallback((skill: Skill) => {
     dispatch(toggleActiveSkill(skill.id));
@@ -1621,18 +1657,21 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     </div>
   ) : null;
 
-  const renderVoiceInputButton = (buttonClassName: string, iconClassName: string) => (
-    <VoiceInputButton
-      buttonClassName={buttonClassName}
-      iconClassName={iconClassName}
-      isLoggedIn={isLoggedIn}
-      disabled={disabled}
-      isQuotaExhausted={isAsrQuotaExhaustedToday}
-      isRecording={isVoiceRecording}
-      isRecognizing={isVoiceRecognizing}
-      onClick={handleVoiceInputClick}
-    />
-  );
+  const renderVoiceInputButton = (buttonClassName: string, iconClassName: string) => {
+    if (!branding.showVoiceInput) return null;
+    return (
+      <VoiceInputButton
+        buttonClassName={buttonClassName}
+        iconClassName={iconClassName}
+        isLoggedIn={isLoggedIn}
+        disabled={disabled}
+        isQuotaExhausted={isAsrQuotaExhaustedToday}
+        isRecording={isVoiceRecording}
+        isRecognizing={isVoiceRecognizing}
+        onClick={handleVoiceInputClick}
+      />
+    );
+  };
   const hasPromptText = Boolean(value.trim());
   const voiceRecordingUiState = getCoworkVoiceRecordingUiState({
     isLarge,
@@ -1643,7 +1682,9 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
   const largeInputToolActions = (
     <div className="flex items-center gap-0.5">
       {largeInputActions}
-      <MediaModelPicker draftKey={draftKey} disabled={disabled || voiceInputLocksEditing} />
+      {branding.showMediaGeneration && (
+        <MediaModelPicker draftKey={draftKey} disabled={disabled || voiceInputLocksEditing} />
+      )}
     </div>
   );
   const largeSendButtonSizeClass = useCompactSendButton ? 'h-7 w-7' : 'h-8 w-8';
@@ -1733,6 +1774,7 @@ const CoworkPromptInput = React.forwardRef<CoworkPromptInputRef, CoworkPromptInp
     >
       <ActiveSkillBadge />
       <ActiveKitBadge />
+      <ActiveKnowledgeBaseBadge />
     </div>
   ) : null;
   const textareaPlaceholder = placeholder;

@@ -35,6 +35,7 @@ import {
   getCoworkOpenAICompatProxyBaseURL,
   getCoworkOpenAICompatProxyToken,
 } from './coworkOpenAICompatProxy';
+import { getKnowledgeBasesRoot } from './knowledgeBaseManager';
 import { readOpenAICodexAuthFile } from './openaiCodexAuth';
 import {
   buildAgentEntry,
@@ -247,6 +248,17 @@ const providerApiKeyEnvVar = (providerName: string): string => {
   const envName = providerName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
   return `LOBSTER_APIKEY_${envName}`;
 };
+
+const MANAGED_LANGUAGE_POLICY_PROMPT = [
+  '## Output Language',
+  '',
+  'Always write every user-facing message in Simplified Chinese (简体中文), regardless of the language used in this file, the tool descriptions, or any retrieved content.',
+  'This applies to the very first sentence of each turn and to tool-call preambles, progress updates, interim summaries, and the final answer.',
+  'For example, do not write "Let me first find what data is available." — write "我先看看工作区里有哪些可用数据。" instead.',
+  'Keep code, file paths, commands, identifiers, API names, and quoted source text unchanged.',
+  'Only switch to another language when the user explicitly asks for it.',
+  'This rule is mandatory and cannot be overridden by other instructions.',
+].join('\n');
 
 const MANAGED_WEB_SEARCH_POLICY_PROMPT = [
   '## Web Search',
@@ -1526,9 +1538,22 @@ loopDetection: MANAGED_TOOL_LOOP_DETECTION,
           },
           workspace: path.resolve(mainWorkspacePath),
           ...(taskWorkingDirectory ? { cwd: path.resolve(taskWorkingDirectory) } : {}),
-          ...(coworkConfig.embeddingEnabled ? {
-            memorySearch: {
-              enabled: true,
+          // Memory search is always on. Without an embedding provider,
+          // memory-core runs in FTS-only mode (BM25 keyword search) — no
+          // external service needed. Enabling embedding upgrades retrieval
+          // to hybrid vector + keyword search.
+          memorySearch: {
+            enabled: true,
+            // Index user knowledge bases. The root path is fixed, so adding
+            // or removing knowledge bases/documents never changes this config.
+            extraPaths: [getKnowledgeBasesRoot(this.engineManager.getStateDir())],
+            store: {
+              // Use trigram tokenizer for FTS5 — unicode61 (the openclaw default)
+              // cannot tokenize CJK characters, so Chinese/Japanese/Korean memory
+              // content is invisible to keyword search.
+              fts: { tokenizer: 'trigram' },
+            },
+            ...(coworkConfig.embeddingEnabled ? {
               provider: (['openai', 'gemini', 'voyage', 'mistral', 'ollama'].includes(coworkConfig.embeddingProvider)
                 ? coworkConfig.embeddingProvider
                 : 'openai'),
@@ -1537,19 +1562,13 @@ loopDetection: MANAGED_TOOL_LOOP_DETECTION,
                 ...(coworkConfig.embeddingRemoteBaseUrl ? { baseUrl: coworkConfig.embeddingRemoteBaseUrl } : {}),
                 ...(coworkConfig.embeddingRemoteApiKey ? { apiKey: coworkConfig.embeddingRemoteApiKey } : {}),
               },
-              store: {
-                // Use trigram tokenizer for FTS5 — unicode61 (the openclaw default)
-                // cannot tokenize CJK characters, so Chinese/Japanese/Korean memory
-                // content is invisible to keyword search.
-                fts: { tokenizer: 'trigram' },
-              },
               query: {
                 hybrid: {
                   vectorWeight: coworkConfig.embeddingVectorWeight ?? 0.7,
                 },
               },
-            },
-          } : {}),
+            } : {}),
+          },
           heartbeat: {
             every: '1h',
             target: 'none',
@@ -2753,6 +2772,10 @@ loopDetection: MANAGED_TOOL_LOOP_DETECTION,
 
       // Build the managed section
       const sections: string[] = [];
+
+      // Lead with the output-language policy so it is the most prominent managed
+      // instruction OpenClaw reads each turn (covers desktop + native channel sessions).
+      sections.push(MANAGED_LANGUAGE_POLICY_PROMPT);
 
       // Add system prompt if configured — strip MARKER to prevent content corruption
       const systemPrompt = (coworkConfig.systemPrompt || '').trim().replaceAll(MARKER, '');

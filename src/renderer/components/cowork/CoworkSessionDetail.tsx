@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { branding } from '../../../shared/branding';
 import type { CoworkImageAttachmentPreview } from '../../../shared/cowork/imageAttachments';
 import {
   type CoworkSelectedTextSnippet,
@@ -572,7 +573,7 @@ const composeExportCanvas = async (
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Failed to load logo'));
-    img.src = 'logo.png';
+    img.src = branding.logo;
   });
 
   // Logo with rounded clipping
@@ -597,11 +598,11 @@ const composeExportCanvas = async (
 
   ctx.fillStyle = brandColor;
   ctx.font = `600 ${brandFontSize}px ${fontStack}`;
-  ctx.fillText('LobsterAI — 全场景个人助理 Agent', textX, footerCenterY - taglineFontSize / 2 - 2);
+  ctx.fillText(`${branding.appName} — 全场景个人助理 Agent`, textX, footerCenterY - taglineFontSize / 2 - 2);
 
   ctx.fillStyle = subtitleColor;
   ctx.font = `400 ${taglineFontSize}px ${fontStack}`;
-  ctx.fillText('7×24 小时帮你干活的全场景个人助理，由网易有道开发', textX, footerCenterY + brandFontSize / 2 + 3);
+  ctx.fillText(`7×24 小时帮你干活的全场景个人助理，由${branding.company.zh}开发`, textX, footerCenterY + brandFontSize / 2 + 3);
 
   ctx.restore(); // card clip
 

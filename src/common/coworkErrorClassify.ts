@@ -4,6 +4,9 @@
  */
 
 const ERROR_RULES: Array<[RegExp, string]> = [
+  // Provider gateway / ACL rejection. Keep this before auth so HTML 403 responses
+  // are not collapsed into a generic API-key message.
+  [/html\s+403|403.*<!doctype html|403.*<html|forbidden.*provider/i, 'coworkErrorProviderForbidden'],
   // Auth: Anthropic, DeepSeek, OpenAI, Gemini, HTTP 401
   [/authentication[_ ](error|fails?)|api[_ ]key.*(invalid|expired|not[_ ]valid)|invalid.*api.*key|incorrect.*api.*key|unauthorized|PERMISSION_DENIED|\b401\b/i, 'coworkErrorAuthInvalid'],
   // LobsterAI free tier quota.
